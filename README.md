@@ -294,7 +294,6 @@ A: 当前版本为单线程设计，多线程支持在开发计划中。
 - 查看[常见问题](#常见问题)部分
 - 搜索现有的[Issues](https://github.com/aofenghanyue/GNC6/issues)
 - 创建新的Issue描述您的问题
-- 发送邮件至: support@example.com
 
 ## 🏆 致谢
 
