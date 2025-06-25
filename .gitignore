@@ -85,6 +85,7 @@ packages/
 
 # Log files
 *.log
+*temp_*
 consoleOutTemp*.log
 
 # OS generated files
