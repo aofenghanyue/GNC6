@@ -4,10 +4,17 @@ project(GncMetaFramework CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 添加调试信息和内存检查选项
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra")
+add_executable(gnc_sim src/main.cpp)
 
-add_executable(gnc_sim main.cpp)
+target_include_directories(gnc_sim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_include_directories(gnc_sim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# 为不同的编译器设置合适的警告等级
+# 这种方式比直接修改 CMAKE_CXX_FLAGS 更加健壮和模块化
+if(MSVC)
+    # MSVC (Visual Studio) 编译器使用 /W4 开启高级别警告
+    target_compile_options(gnc_sim PRIVATE /W4)
+else()
+    # GCC/Clang 编译器使用 -Wall 和 -Wextra
+    # Debug模式下的 -g 标志由 CMake 自动处理，无需手动添加
+    target_compile_options(gnc_sim PRIVATE -Wall -Wextra)
+endif()
