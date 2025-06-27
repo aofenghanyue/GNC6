@@ -44,14 +44,13 @@ FetchContent_MakeAvailable(spdlog)
 
 # --- GNC Library ---
 # Glob all source files for the library
-file(GLOB_RECURSE GNC_SOURCES "src/gnc/*.hpp" "src/gnc/*.cpp")
+file(GLOB_RECURSE GNC_SOURCES "include/gnc/*.hpp" "include/gnc/*.cpp")
 
 # Create a static library from the GNC sources
 add_library(gnc_lib STATIC ${GNC_SOURCES})
 
-# Add the src directory to the include path for the library
+# Add the include directory to the include path for the library
 target_include_directories(gnc_lib PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${EIGEN_INCLUDE_DIR} # Eigen is header-only
     ${nlohmann_json_SOURCE_DIR}/include # JSON is header-only

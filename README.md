@@ -18,7 +18,7 @@ cd GNC6
 mkdir build && cd build
 
 # 配置和构建
-cmake ../src
+cmake ..
 make
 
 # 运行示例
@@ -81,7 +81,7 @@ make
 ## 目录结构
 
 ```
-src/
+include/
 ├── gnc/
 │   ├── common/          # 通用类型和异常定义
 │   ├── components/      # 具体组件实现
@@ -92,6 +92,7 @@ src/
 │   │   ├── sensors/     # 传感器模型
 │   │   └── utility/     # 工具组件
 │   └── core/           # 框架核心实现
+src/
 └── main.cpp            # 示例程序
 ```
 
