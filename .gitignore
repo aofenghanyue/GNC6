@@ -33,6 +33,7 @@ build/
 Build/
 BUILD/
 cmake-build-*/
+deps
 
 # CMake
 CMakeCache.txt

@@ -140,8 +140,8 @@ for (int i = 0; i < num_steps; ++i) {
 pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake
 
 # 构建项目
-mkdir build && cd build
-cmake ../src -G "MinGW Makefiles"
+mkdir build ;; cd build
+cmake .. -G "MinGW Makefiles"
 mingw32-make
 ```
 
@@ -156,7 +156,7 @@ brew install cmake
 
 # 构建项目
 mkdir build && cd build
-cmake ../src
+cmake ..
 make -j$(nproc)
 ```
 
