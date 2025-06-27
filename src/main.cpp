@@ -8,6 +8,8 @@
 #include "gnc/components/logic/navigation_logic.hpp"
 #include "gnc/components/logic/guidance_logic.hpp"
 #include "gnc/components/logic/control_logic.hpp"
+// 引入日志系统
+#include "gnc/components/utility/simple_logger.hpp"
 #include <iostream>
 
 using namespace gnc;
@@ -15,15 +17,32 @@ using namespace gnc::components;
 
 int main() {
     try {
+        // 初始化日志系统
+        gnc::components::utility::LogSinkConfig log_config;
+        log_config.console_enabled = true;
+        log_config.file_enabled = true;
+        log_config.file_path = "logs/gnc_simulation.log";
+        
+        gnc::components::utility::SimpleLogger::getInstance().initialize(
+            "gnc_simulation", 
+            gnc::components::utility::LogLevel::INFO,
+            log_config
+        );
+        
+        LOG_INFO("=== GNC Meta-Framework Skeleton Simulation Started ===");
         std::cout << "--- GNC Meta-Framework Skeleton Simulation ---" << std::endl;
         
         StateManager manager;
         const states::VehicleId VEHICLE_1 = 1;
+        
+        LOG_INFO("Initializing simulation with Vehicle ID: {}", VEHICLE_1);
 
         // --- 1. 实例化所有组件 ---
+        LOG_INFO("Creating simulation components...");
         // 注意：这里用new，因为StateManager接管了所有权
         // 环境
         auto atmosphere = new SimpleAtmosphere(VEHICLE_1);
+        LOG_DEBUG("Created SimpleAtmosphere component");
         
         // 效应器
         auto aerodynamics = new SimpleAerodynamics(VEHICLE_1);
@@ -44,8 +63,10 @@ int main() {
         auto control = new ControlLogic(VEHICLE_1);
 
         // --- 2. 注册组件到管理器 ---
+        LOG_INFO("Registering components to StateManager...");
         // 注册顺序不重要，组件管理器会自动排序
         manager.registerComponent(atmosphere);
+        LOG_DEBUG("Registered SimpleAtmosphere component");
         manager.registerComponent(aerodynamics);
         manager.registerComponent(aero_biaser); // 注册拉偏组件
         manager.registerComponent(dynamics);
@@ -60,20 +81,38 @@ int main() {
 
         // --- 4. 运行仿真循环 ---
         const int num_steps = 5;
+        LOG_INFO("Starting simulation loop with {} time steps", num_steps);
+        
         for (int i = 0; i < num_steps; ++i) {
+            LOG_INFO("=== Time Step {} ===", i);
             std::cout << "\n--- Time Step " << i << " ---" << std::endl;
-            manager.updateAll();
+            
+            try {
+                manager.updateAll();
+                LOG_DEBUG("Time step {} completed successfully", i);
+            } catch (const std::exception& e) {
+                LOG_ERROR("Error in time step {}: {}", i, e.what());
+                throw;
+            }
         }
 
+        LOG_INFO("=== Simulation Completed Successfully ===");
         std::cout << "\n--- Simulation Finished ---" << std::endl;
 
     } catch (const GncException& e) {
+        LOG_CRITICAL("GNC Exception: {}", e.what());
         std::cerr << "ERROR: " << e.what() << std::endl;
+        gnc::components::utility::SimpleLogger::getInstance().shutdown();
         return 1;
     } catch (const std::exception& e) {
+        LOG_CRITICAL("Standard exception: {}", e.what());
         std::cerr << "A standard exception occurred: " << e.what() << std::endl;
+        gnc::components::utility::SimpleLogger::getInstance().shutdown();
         return 1;
     }
 
+    // 正常结束时关闭日志系统
+    LOG_INFO("Program terminating normally");
+    gnc::components::utility::SimpleLogger::getInstance().shutdown();
     return 0;
 }
