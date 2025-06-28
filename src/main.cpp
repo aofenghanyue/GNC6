@@ -8,8 +8,9 @@
 #include "gnc/components/logic/navigation_logic.hpp"
 #include "gnc/components/logic/guidance_logic.hpp"
 #include "gnc/components/logic/control_logic.hpp"
-// 引入日志系统
+// 引入日志系统和配置管理器
 #include "gnc/components/utility/simple_logger.hpp"
+#include "gnc/components/utility/config_manager.hpp"
 #include <iostream>
 
 using namespace gnc;
@@ -17,17 +18,14 @@ using namespace gnc::components;
 
 int main() {
     try {
-        // 初始化日志系统
-        gnc::components::utility::LogSinkConfig log_config;
-        log_config.console_enabled = true;
-        log_config.file_enabled = true;
-        log_config.file_path = "logs/gnc_simulation.log";
+        // 初始化多文件配置管理器
+        auto& config_manager = gnc::components::utility::ConfigManager::getInstance();
+        if (!config_manager.loadConfigs("config/")) {
+            std::cerr << "Warning: Failed to load some configuration files, using defaults" << std::endl;
+        }
         
-        gnc::components::utility::SimpleLogger::getInstance().initialize(
-            "gnc_simulation", 
-            gnc::components::utility::LogLevel::DEBUG,
-            log_config
-        );
+        // 从多文件配置初始化日志系统
+        gnc::components::utility::SimpleLogger::getInstance().initializeFromConfig("gnc_simulation");
         
         LOG_INFO("=== GNC Meta-Framework Skeleton Simulation Started ===");
         

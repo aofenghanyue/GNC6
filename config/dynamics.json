@@ -1,0 +1,20 @@
+{
+    "components": {
+        "rigid_body_6dof": {
+            "enabled": true,
+            "mass": 1000.0,
+            "inertia_matrix": [
+                [100.0, 0.0, 0.0],
+                [0.0, 100.0, 0.0],
+                [0.0, 0.0, 100.0]
+            ],
+            "initial_position": [0.0, 0.0, 0.0],
+            "initial_velocity": [0.0, 0.0, 0.0],
+            "initial_attitude": [0.0, 0.0, 0.0],
+            "initial_angular_velocity": [0.0, 0.0, 0.0],
+            "integration_method": "runge_kutta_4",
+            "gravity_enabled": true,
+            "gravity_acceleration": [0.0, 0.0, -9.81]
+        }
+    }
+}

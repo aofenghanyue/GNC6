@@ -1,0 +1,55 @@
+{
+    "components": {
+        "imu": {
+            "enabled": true,
+            "update_frequency": 100.0,
+            "sensor_type": "ideal",
+            "gyro_noise_std": 0.01,
+            "accel_noise_std": 0.05,
+            "bias_stability": 0.001,
+            "scale_factor_error": 0.001,
+            "misalignment_error": 0.001,
+            "temperature_effects": {
+                "enabled": false,
+                "temperature_coefficient": 0.0001
+            },
+            "calibration": {
+                "auto_calibrate": false,
+                "calibration_time": 60.0
+            }
+        },
+        "gps": {
+            "enabled": true,
+            "update_frequency": 10.0,
+            "position_noise_std": 0.1,
+            "velocity_noise_std": 0.05,
+            "constellation": "GPS+GLONASS",
+            "multipath_effects": {
+                "enabled": false,
+                "severity": 0.1
+            },
+            "atmospheric_effects": {
+                "ionospheric_delay": true,
+                "tropospheric_delay": true
+            }
+        },
+        "lidar": {
+            "enabled": false,
+            "update_frequency": 20.0,
+            "range_noise_std": 0.02,
+            "max_range": 100.0,
+            "min_range": 0.1,
+            "field_of_view": 360.0,
+            "angular_resolution": 0.25,
+            "beam_divergence": 0.001
+        },
+        "camera": {
+            "enabled": false,
+            "update_frequency": 30.0,
+            "resolution": [1920, 1080],
+            "field_of_view": [60.0, 45.0],
+            "noise_model": "gaussian",
+            "noise_std": 1.0
+        }
+    }
+}

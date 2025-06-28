@@ -23,3 +23,13 @@ gtest_discover_tests(gnc_tests
     PROPERTIES LABELS "gnc_project_tests"
     TEST_PREFIX "gnc::"
 )
+
+# Create config manager test executable
+add_executable(test_config_manager test_config_manager.cpp)
+
+# 链接 GNC 库
+target_link_libraries(test_config_manager PRIVATE gnc_lib)
+
+# 添加测试
+add_test(NAME config_manager_test COMMAND test_config_manager)
+set_tests_properties(config_manager_test PROPERTIES LABELS "config_tests")

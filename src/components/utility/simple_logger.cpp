@@ -4,6 +4,7 @@
  */
 
 #include "../../../include/gnc/components/utility/simple_logger.hpp"
+#include "../../../include/gnc/components/utility/config_manager.hpp"
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -92,6 +93,48 @@ void SimpleLogger::initialize(const std::string& logger_name,
         
     } catch (const std::exception& e) {
         std::cerr << "Failed to initialize logger: " << e.what() << std::endl;
+    }
+}
+
+
+
+void SimpleLogger::initializeFromConfig(const std::string& logger_name) {
+    if (initialized_) {
+        if (main_logger_) {
+            main_logger_->warn("Logger already initialized, skipping re-initialization");
+        }
+        return;
+    }
+
+    try {
+        // 从多文件配置管理器获取日志配置
+        auto& config_manager = ConfigManager::getInstance();
+    auto sink_config = config_manager.getLoggerConfig();
+    
+    // 获取日志级别
+    std::string level_str = config_manager.getConfigValue<std::string>(ConfigFileType::CORE, "logger.level", "info");
+        LogLevel level = LogLevel::INFO; // 默认级别
+        
+        // 转换字符串到日志级别
+        if (level_str == "trace") level = LogLevel::TRACE;
+        else if (level_str == "debug") level = LogLevel::DEBUG;
+        else if (level_str == "info") level = LogLevel::INFO;
+        else if (level_str == "warn") level = LogLevel::WARN;
+        else if (level_str == "error") level = LogLevel::ERR;
+        else if (level_str == "critical") level = LogLevel::CRITICAL;
+        else if (level_str == "off") level = LogLevel::OFF;
+        
+        // 使用配置初始化日志系统
+        initialize(logger_name, level, sink_config);
+        
+        if (main_logger_) {
+            main_logger_->info("Logger initialized from multi-config");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to initialize logger from multi-config: " << e.what() << std::endl;
+        // 使用默认配置作为备用
+        initialize(logger_name);
     }
 }
 

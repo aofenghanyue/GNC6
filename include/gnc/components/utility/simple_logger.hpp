@@ -99,6 +99,14 @@ public:
                    LogLevel level = LogLevel::INFO,
                    const LogSinkConfig& config = LogSinkConfig{});
 
+
+
+    /**
+     * @brief 从多文件配置管理器初始化日志系统
+     * @param logger_name 主日志器名称
+     */
+    void initializeFromConfig(const std::string& logger_name = "gnc_main");
+
     /**
      * @brief 获取主日志器
      * @return std::shared_ptr<spdlog::logger> 日志器指针

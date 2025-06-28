@@ -1,0 +1,16 @@
+{
+    "logger": {
+        "console_enabled": true,
+        "file_enabled": true,
+        "file_path": "logs/gnc.log",
+        "max_file_size": 10485760,
+        "max_files": 5,
+        "async_enabled": true,
+        "level": "info"
+    },
+    "global": {
+        "simulation_time_step": 0.01,
+        "max_simulation_time": 1000.0,
+        "real_time_factor": 1.0
+    }
+}

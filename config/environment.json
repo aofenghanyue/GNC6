@@ -1,0 +1,15 @@
+{
+    "components": {
+        "atmosphere": {
+            "enabled": true,
+            "model_type": "simple",
+            "sea_level_density": 1.225,
+            "scale_height": 8400.0,
+            "wind_velocity": [0.0, 0.0, 0.0],
+            "temperature_model": "standard",
+            "pressure_model": "standard",
+            "turbulence_enabled": false,
+            "turbulence_intensity": 0.1
+        }
+    }
+}
