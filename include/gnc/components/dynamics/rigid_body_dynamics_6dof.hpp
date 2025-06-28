@@ -17,6 +17,10 @@ public:
         declareOutput<std::vector<double>>("velocity_truth_mps", std::vector<double>{0.0, 0.0, 0.0});
         declareOutput<std::vector<double>>("attitude_truth_quat", std::vector<double>{1.0, 0.0, 0.0, 0.0}); // w,x,y,z
     }
+
+    std::string getComponentType() const override {
+        return "RigidBodyDynamics6DoF";
+    }
 protected:
     void updateImpl() override {
         // 伪实现：简单积分

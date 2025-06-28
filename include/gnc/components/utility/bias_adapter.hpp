@@ -15,6 +15,10 @@ public:
         declareInput<std::vector<double>>(input_source.name, input_source);
         declareOutput<std::vector<double>>(output_name);
     }
+
+    std::string getComponentType() const override {
+        return "BiasAdapter";
+    }
 protected:
     void updateImpl() override {
         // 从上游组件获取原始值

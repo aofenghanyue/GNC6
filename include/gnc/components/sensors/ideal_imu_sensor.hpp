@@ -12,6 +12,10 @@ public:
         // declareInput<std::vector<double>>("velocity_truth", {{id, "Dynamics"}, "velocity_truth_mps"}, false);
         declareOutput<std::vector<double>>("measured_acceleration");
     }
+
+    std::string getComponentType() const override {
+        return "IdealIMUSensor";
+    }
 protected:
     void updateImpl() override {
         auto vel_truth = getState<std::vector<double>>({{getVehicleId(), "Dynamics"}, "velocity_truth_mps"});

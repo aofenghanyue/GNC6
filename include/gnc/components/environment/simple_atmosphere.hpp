@@ -10,6 +10,10 @@ public:
     SimpleAtmosphere(states::VehicleId id) : states::ComponentBase(id, "Atmosphere") {
         declareOutput<double>("air_density_kg_m3");
     }
+
+    std::string getComponentType() const override {
+        return "SimpleAtmosphere";
+    }
 protected:
     void updateImpl() override {
         double density = 1.225; // 海平面标准大气密度

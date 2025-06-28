@@ -11,6 +11,10 @@ public:
         declareInput<double>("throttle_cmd", {{id, "Guidance"}, "desired_throttle_level"});
         declareOutput<double>("engine_gimbal_angle_rad");
     }
+
+    std::string getComponentType() const override {
+        return "ControlLogic";
+    }
 protected:
     void updateImpl() override {
         auto throttle = getState<double>({{getVehicleId(), "Guidance"}, "desired_throttle_level"});

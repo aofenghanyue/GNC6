@@ -78,6 +78,7 @@ vcpkg_installed/
 packages/
 
 # Temporary files
+temp/
 *.tmp
 *.temp
 *.swp

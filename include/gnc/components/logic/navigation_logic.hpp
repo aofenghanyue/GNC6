@@ -13,6 +13,10 @@ public:
         declareInput<std::vector<double>>("pos_measured", {{id, "IMU_Sensor"}, "measured_acceleration"});
         declareOutput<std::vector<double>>("pva_estimate");
     }
+
+    std::string getComponentType() const override {
+        return "PerfectNavigation";
+    }
 protected:
     void updateImpl() override {
         auto pos_truth = getState<std::vector<double>>({{getVehicleId(), "Dynamics"}, "position_truth_m"});

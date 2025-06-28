@@ -87,6 +87,37 @@ public:
     ComponentBase(ComponentBase&&) = delete;
     ComponentBase& operator=(ComponentBase&&) = delete;
 
+    // --- 生命周期管理 (由 StateManager 调用) ---
+    
+    /**
+     * @brief 初始化。在所有组件注册后、首次更新前调用。
+     * 可选重写。用于执行一次性设置、资源分配等。
+     */
+    virtual void initialize() {}
+
+    /**
+     * @brief 更新。由StateManager在每个仿真步长中调用。
+     */
+    void update() {
+        updateImpl();
+    }
+
+    /**
+     * @brief 终结。在仿真结束或组件销毁前调用。
+     * 可选重写。用于资源释放。
+     */
+    virtual void finalize() {}
+
+
+    // --- 元数据与接口 ---
+
+    /**
+     * @brief 获取组件的唯一类型名称。
+     * @return std::string 组件类型名，用于组件工厂。
+     * @details 派生类必须实现此方法，返回一个唯一的字符串标识。
+     */
+    virtual std::string getComponentType() const = 0;
+
     /**
      * @brief 获取组件的状态接口
      * 
@@ -122,17 +153,38 @@ public:
      */
     const std::string& getName() const { return name_; }
 
-        IStateAccess* getStateAccess() {
-        return stateAccess_;
-    }
-
+    /**
+     * @brief 获取组件所属的飞行器ID
+     */
     VehicleId getVehicleId() const { return vehicleId_; }
 
+    /**
+     * @brief 获取完整的组件ID
+     */
     ComponentId getComponentId() const {
         return ComponentId{vehicleId_, getName()};
     }
 
 protected:
+    /**
+     * @brief 组件更新实现 (纯虚函数)
+     * 
+     * @details 组件的核心逻辑：
+     * 1. 读取输入状态
+     * 2. 执行组件特定的处理
+     * 3. 更新输出状态
+     * 
+     * 派生类必须实现此方法，例如：
+     * @code
+     * void GPSSensor::updateImpl() {
+     *     auto rawData = readSensor();
+     *     auto position = processRawData(rawData);
+     *     setState("position", position);
+     * }
+     * @endcode
+     */
+    virtual void updateImpl() = 0;
+
     /**
      * @brief 声明输入状态
      * 
@@ -261,32 +313,13 @@ protected:
         stateAccess_->setState(StateId{getComponentId(), name}, value);
     }
 
-    /**
-     * @brief 组件更新实现
-     * 
-     * @details 组件的核心逻辑：
-     * 1. 读取输入状态
-     * 2. 执行组件特定的处理
-     * 3. 更新输出状态
-     * 
-     * 派生类必须实现此方法，例如：
-     * @code
-     * void GPSSensor::updateImpl() {
-     *     auto rawData = readSensor();
-     *     auto position = processRawData(rawData);
-     *     setState("position", position);
-     * }
-     * @endcode
-     */
-    virtual void updateImpl() = 0;
+    friend class gnc::StateManager;  // 允许 StateManager 访问 protected 成员
 
+private:
     void setStateAccess(IStateAccess* access) {
         stateAccess_ = access;
     }
 
-    friend class gnc::StateManager;  // 允许 StateManager 访问 protected 成员
-
-private:
     VehicleId vehicleId_;
     std::string name_;
     IStateAccess* stateAccess_{nullptr};

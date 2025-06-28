@@ -13,6 +13,10 @@ public:
         declareInput<std::vector<double>>("nav_pva", {{id, "Navigation"}, "pva_estimate"});
         declareOutput<double>("desired_throttle_level"); // 输出一个油门指令
     }
+
+    std::string getComponentType() const override {
+        return "GuidanceLogic";
+    }
 protected:
     void updateImpl() override {
         setState("desired_throttle_level", 0.75); // 伪实现

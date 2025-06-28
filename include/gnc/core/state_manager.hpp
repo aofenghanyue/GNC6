@@ -23,6 +23,19 @@ using namespace states;
 class StateManager : public IStateAccess {
 public:
     ~StateManager() {
+        // 按执行顺序的逆序终结组件，确保依赖项最后被清理
+        std::vector<ComponentId> reverse_order = executionOrder_;
+        std::reverse(reverse_order.begin(), reverse_order.end());
+        
+        LOG_INFO("[StateManager] Finalizing components in reverse order...");
+        for (const auto& id : reverse_order) {
+            if (components_.count(id)) {
+                LOG_DEBUG("[Finalize] -> {}", id.name.c_str());
+                components_.at(id)->finalize();
+            }
+        }
+
+        // 清理资源
         for (auto& [id, component] : components_) {
             if (component) {
                 component->setStateAccess(nullptr);
@@ -31,6 +44,7 @@ public:
         }
         components_.clear();
         states_.clear();
+        LOG_INFO("[StateManager] Shutdown complete.");
     }
 
     void registerComponent(ComponentBase* component) {
@@ -104,9 +118,6 @@ public:
             }
         }
         
-        // 注意：DFS的后序遍历结果是反向的拓扑序，所以我们需要反转
-        // std::reverse(sorted_order.begin(), sorted_order.end());
-        // 或者在加入时插到头部。这里直接用后序遍历顺序，意味着依赖项会先被更新。
         executionOrder_ = sorted_order;
 
         LOG_DEBUG("[StateManager] Component execution order determined");
@@ -119,6 +130,15 @@ public:
         }
         LOG_INFO("  └─ LOOP_END");
 
+        // 3. 初始化所有组件
+        LOG_INFO("[StateManager] Initializing components...");
+        for (const auto& id : executionOrder_) {
+            if (components_.count(id)) {
+                LOG_DEBUG("[Initialize] -> {}", id.name.c_str());
+                components_.at(id)->initialize();
+            }
+        }
+
         needsRevalidation_ = false;
     }
 
@@ -129,7 +149,7 @@ public:
         for (const auto& id : executionOrder_) {
             if (components_.count(id)) {
                 LOG_TRACE("[Update] -> {}", id.name.c_str());
-                components_.at(id)->updateImpl();
+                components_.at(id)->update();
             }
         }
     }

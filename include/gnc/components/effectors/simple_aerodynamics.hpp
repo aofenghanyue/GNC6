@@ -15,6 +15,10 @@ public:
         
         declareOutput<std::vector<double>>("aero_force_truth_N");
     }
+
+    std::string getComponentType() const override {
+        return "SimpleAerodynamics";
+    }
 protected:
     void updateImpl() override {
         auto density = getState<double>({ {getVehicleId(), "Atmosphere"}, "air_density_kg_m3" });

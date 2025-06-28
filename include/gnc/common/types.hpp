@@ -94,7 +94,7 @@ enum class StateAccessType {
 /**
  * @brief 状态规格定义
  * @details 描述状态的完整特征，包括：
- * - name: 状态名称
+ * - name: 状态名称，这里的名称用于output时创建组件的状态，在input时没什么用
  * - type: 状态的数据类型
  * - access: 访问权限
  * - source: 输入状态的数据来源
