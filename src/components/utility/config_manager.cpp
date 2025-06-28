@@ -121,29 +121,21 @@ bool ConfigManager::reloadConfig(ConfigFileType type) {
     return success;
 }
 
-LogSinkConfig ConfigManager::getLoggerConfig() const {
-    LogSinkConfig config;
-    
-    auto core_config = getConfig(ConfigFileType::CORE);
-    if (core_config.contains("logger")) {
-        auto logger_config = core_config["logger"];
-        
-        config.console_enabled = logger_config.value("console_enabled", true);
-        config.file_enabled = logger_config.value("file_enabled", true);
-        config.file_path = logger_config.value("file_path", std::string("logs/gnc.log"));
-        config.max_file_size = logger_config.value("max_file_size", 10485760);
-        config.max_files = logger_config.value("max_files", 5);
-        config.async_enabled = logger_config.value("async_enabled", true);
-    }
-    
-    return config;
-}
+
 
 nlohmann::json ConfigManager::getComponentConfig(ConfigFileType config_type, const std::string& component_name) const {
     auto config = getConfig(config_type);
     
-    if (config.contains("components") && config["components"].contains(component_name)) {
-        return config["components"][component_name];
+    // 新的配置结构：配置文件类型 -> 组件类别 -> 组件名
+    // 使用现有的configTypeToString函数获取组件类别
+    std::string category = configTypeToString(config_type);
+    
+    if (category == "unknown") {
+        return nlohmann::json::object();
+    }
+    
+    if (config.contains(category) && config[category].contains(component_name)) {
+        return config[category][component_name];
     }
     
     return nlohmann::json::object();
@@ -314,7 +306,7 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
             
         case ConfigFileType::DYNAMICS:
             return nlohmann::json::parse(R"({
-                "components": {
+                "dynamics": {
                     "rigid_body_6dof": {
                         "enabled": true,
                         "mass": 1000.0,
@@ -329,10 +321,9 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
             
         case ConfigFileType::ENVIRONMENT:
             return nlohmann::json::parse(R"({
-                "components": {
+                "environment": {
                     "atmosphere": {
                         "enabled": true,
-                        "model_type": "simple",
                         "sea_level_density": 1.225,
                         "scale_height": 8400.0,
                         "wind_velocity": [0, 0, 0]
@@ -342,37 +333,29 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
             
         case ConfigFileType::EFFECTORS:
             return nlohmann::json::parse(R"({
-                "components": {
+                "effectors": {
                     "aerodynamics": {
                         "enabled": true,
                         "reference_area": 10.0,
                         "drag_coefficient": 0.5,
-                        "lift_coefficient": 0.3,
-                        "side_force_coefficient": 0.1
+                        "lift_coefficient": 0.3
                     }
                 }
             })");
             
         case ConfigFileType::LOGIC:
             return nlohmann::json::parse(R"({
-                "components": {
+                "logic": {
                     "navigation": {
                         "enabled": true,
                         "update_frequency": 100.0,
-                        "filter_type": "perfect",
-                        "gps_noise_std": 0.1,
-                        "imu_noise_std": 0.01
+                        "filter_type": "perfect"
                     },
                     "guidance": {
                         "enabled": true,
                         "update_frequency": 50.0,
                         "waypoint_tolerance": 1.0,
-                        "max_speed": 10.0,
-                        "path_planning": {
-                            "algorithm": "a_star",
-                            "grid_resolution": 0.5,
-                            "safety_margin": 2.0
-                        }
+                        "max_speed": 10.0
                     },
                     "control": {
                         "enabled": true,
@@ -381,11 +364,6 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
                             "kp": 1.0,
                             "ki": 0.1,
                             "kd": 0.01
-                        },
-                        "control_limits": {
-                            "max_thrust": 100.0,
-                            "max_steering_angle": 45.0,
-                            "max_acceleration": 5.0
                         }
                     }
                 }
@@ -393,13 +371,12 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
             
         case ConfigFileType::SENSORS:
             return nlohmann::json::parse(R"({
-                "components": {
+                "sensors": {
                     "imu": {
                         "enabled": true,
                         "update_frequency": 100.0,
                         "gyro_noise_std": 0.01,
-                        "accel_noise_std": 0.05,
-                        "bias_stability": 0.001
+                        "accel_noise_std": 0.05
                     },
                     "gps": {
                         "enabled": true,
@@ -412,7 +389,13 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
             
         case ConfigFileType::UTILITY:
             return nlohmann::json::parse(R"({
-                "components": {
+                "utility": {
+                    "logger": {
+                        "console_enabled": true,
+                        "file_enabled": true,
+                        "file_path": "logs/gnc.log",
+                        "level": "info"
+                    },
                     "bias_adapter": {
                         "enabled": true,
                         "bias_factor": 1.2,

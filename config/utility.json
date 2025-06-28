@@ -1,45 +1,15 @@
 {
-    "logger": {
-        "name": "gnc_simulation",
-        "console_enabled": true,
-        "file_enabled": true,
-        "file_path": "logs/gnc.log",
-        "max_file_size": 10485760,
-        "max_files": 5,
-        "async_enabled": true,
-        "level": "trace"
-    },
-    "components": {
+    "utility": {
+        "logger": {
+            "console_enabled": true,
+            "file_enabled": true,
+            "file_path": "logs/gnc.log",
+            "level": "info"
+        },
         "bias_adapter": {
             "enabled": true,
             "bias_factor": 1.2,
-            "noise_std": 0.01,
-            "bias_type": "multiplicative",
-            "time_varying": {
-                "enabled": false,
-                "variation_frequency": 0.1,
-                "variation_amplitude": 0.05
-            }
-        },
-        "data_logger": {
-            "enabled": true,
-            "output_directory": "logs/data",
-            "file_format": "csv",
-            "compression": false,
-            "buffer_size": 1000,
-            "flush_frequency": 10.0
-        },
-        "performance_monitor": {
-            "enabled": true,
-            "monitoring_frequency": 1.0,
-            "cpu_monitoring": true,
-            "memory_monitoring": true,
-            "timing_monitoring": true,
-            "alert_thresholds": {
-                "cpu_usage": 80.0,
-                "memory_usage": 80.0,
-                "update_time": 0.1
-            }
+            "noise_std": 0.01
         }
     }
 }

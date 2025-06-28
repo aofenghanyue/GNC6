@@ -115,7 +115,15 @@ void SimpleLogger::initializeFromConfig() {
     try {
         // 从配置管理器获取日志配置
         auto& config_manager = ConfigManager::getInstance();
-        auto sink_config = config_manager.getLoggerConfig();
+        auto logger_config = config_manager.getComponentConfig(ConfigFileType::UTILITY, "logger");
+        
+        LogSinkConfig sink_config;
+        sink_config.console_enabled = logger_config.value("console_enabled", true);
+        sink_config.file_enabled = logger_config.value("file_enabled", true);
+        sink_config.file_path = logger_config.value("file_path", std::string("logs/gnc.log"));
+        sink_config.max_file_size = logger_config.value("max_file_size", 10485760);
+        sink_config.max_files = logger_config.value("max_files", 5);
+        sink_config.async_enabled = logger_config.value("async_enabled", true);
         
         // 从配置文件获取logger名称
         std::string config_logger_name = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "logger.name", "gnc_main");

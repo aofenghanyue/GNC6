@@ -136,3 +136,4 @@ test_results/
 
 # Custom project specific
 # Add your project specific ignores here
+.env

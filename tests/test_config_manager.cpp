@@ -35,12 +35,12 @@ void testLoggerConfig() {
     auto& config_manager = ConfigManager::getInstance();
     
     // 获取日志配置
-    auto log_config = config_manager.getLoggerConfig();
+    auto logger_config = config_manager.getComponentConfig(ConfigFileType::UTILITY, "logger");
     
     // 验证日志配置
-    assert(log_config.console_enabled && "Console logging should be enabled");
-    assert(log_config.file_enabled && "File logging should be enabled");
-    assert(!log_config.file_path.empty() && "File path should not be empty");
+    assert(logger_config.value("console_enabled", false) && "Console logging should be enabled");
+    assert(logger_config.value("file_enabled", false) && "File logging should be enabled");
+    assert(!logger_config.value("file_path", std::string("")).empty() && "File path should not be empty");
     
     std::cout << "✓ Logger config test passed" << std::endl;
 }

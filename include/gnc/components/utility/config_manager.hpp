@@ -25,7 +25,7 @@
  *    ConfigManager::getInstance().loadConfigs("config/");
  *    
  *    // 获取日志配置
- *    auto logConfig = ConfigManager::getInstance().getLoggerConfig();
+     *    auto logConfig = ConfigManager::getInstance().getComponentConfig(ConfigFileType::UTILITY, "logger");
  *    
  *    // 获取组件配置
  *    auto navConfig = ConfigManager::getInstance().getComponentConfig("logic", "navigation");
@@ -103,11 +103,7 @@ public:
      */
     bool reloadConfig(ConfigFileType type);
 
-    /**
-     * @brief 获取日志配置
-     * @return LogSinkConfig 日志配置结构
-     */
-    LogSinkConfig getLoggerConfig() const;
+
 
     /**
      * @brief 获取组件配置
