@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include <vector>
 #include "../utility/simple_logger.hpp"
 
@@ -23,4 +24,7 @@ protected:
         LOG_COMPONENT_DEBUG("Output desired throttle: 0.75");
     }
 };
+
+static gnc::ComponentRegistrar<GuidanceLogic> guidance_logic_registrar("GuidanceLogic");
+
 }

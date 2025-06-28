@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include <vector>
 #include "../utility/simple_logger.hpp"
 
@@ -26,4 +27,7 @@ protected:
                   accel_measured[0], accel_measured[1], accel_measured[2]);
     }
 };
+
+static gnc::ComponentRegistrar<IdealIMUSensor> ideal_imu_sensor_registrar("IdealIMUSensor");
+
 }

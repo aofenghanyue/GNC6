@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include <vector> // 仅作类型示例
 #include "../utility/simple_logger.hpp"
 
@@ -33,5 +34,7 @@ protected:
         LOG_COMPONENT_DEBUG("Calculated aero force (truth): {}", force[0]);
     }
 };
+
+static gnc::ComponentRegistrar<SimpleAerodynamics> simple_aerodynamics_registrar("SimpleAerodynamics");
 
 }

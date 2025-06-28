@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include <vector>
 #include "../utility/simple_logger.hpp"
 
@@ -22,4 +23,7 @@ protected:
         LOG_COMPONENT_DEBUG("Output gimbal angle: {}", throttle * 0.1);
     }
 };
+
+static gnc::ComponentRegistrar<ControlLogic> control_logic_registrar("ControlLogic");
+
 }

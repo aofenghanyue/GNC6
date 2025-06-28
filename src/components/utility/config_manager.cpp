@@ -56,6 +56,18 @@ ConfigFileFormat detectConfigFormat(const std::string& file_path) {
 
 ConfigManager& ConfigManager::getInstance() {
     static ConfigManager instance;
+    static bool config_loaded = false;
+    
+    // 如果配置还未加载，自动加载默认配置
+    if (!config_loaded) {
+        // 尝试从默认路径加载配置
+        std::string default_config_path = "config/";
+        if (std::filesystem::exists(default_config_path)) {
+            instance.loadConfigs(default_config_path);
+        }
+        config_loaded = true;
+    }
+    
     return instance;
 }
 
@@ -418,15 +430,6 @@ nlohmann::json ConfigManager::getDefaultConfig(ConfigFileType type) {
     switch (type) {
         case ConfigFileType::CORE:
             return nlohmann::json::parse(R"({
-                "logger": {
-                    "console_enabled": true,
-                    "file_enabled": true,
-                    "file_path": "logs/gnc.log",
-                    "max_file_size": 10485760,
-                    "max_files": 5,
-                    "async_enabled": true,
-                    "level": "info"
-                },
                 "global": {
                     "simulation_time_step": 0.01,
                     "max_simulation_time": 1000.0,

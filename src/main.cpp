@@ -1,105 +1,62 @@
+// main.cpp
+#include <iostream>
 #include "gnc/core/state_manager.hpp"
+#include "gnc/components/utility/config_manager.hpp"
+#include "gnc/components/utility/simple_logger.hpp"
+#include "gnc/core/component_factory.hpp"
+
+// 包含所有组件头文件以确保自注册代码被编译
 #include "gnc/components/environment/simple_atmosphere.hpp"
 #include "gnc/components/effectors/simple_aerodynamics.hpp"
-#include "gnc/components/utility/bias_adapter.hpp"
 #include "gnc/components/dynamics/rigid_body_dynamics_6dof.hpp"
-// 引入其他组件头文件
 #include "gnc/components/sensors/ideal_imu_sensor.hpp"
 #include "gnc/components/logic/navigation_logic.hpp"
 #include "gnc/components/logic/guidance_logic.hpp"
 #include "gnc/components/logic/control_logic.hpp"
-// 引入日志系统和配置管理器
-#include "gnc/components/utility/simple_logger.hpp"
-#include "gnc/components/utility/config_manager.hpp"
-#include <iostream>
 
 using namespace gnc;
 using namespace gnc::components;
 
 int main() {
     try {
-        // 初始化配置管理器
+        // 1. 初始化核心服务（配置会在getInstance时自动加载）
         auto& config_manager = gnc::components::utility::ConfigManager::getInstance();
-        if (!config_manager.loadConfigs("config/")) {
-            std::cerr << "Warning: Failed to load some configuration files, using defaults" << std::endl;
-        }
         
-        LOG_INFO("=== GNC Meta-Framework Skeleton Simulation Started ===");
-        
-        StateManager manager;
-        const states::VehicleId VEHICLE_1 = 1;
-        
-        LOG_INFO("Initializing simulation with Vehicle ID: {}", VEHICLE_1);
+        LOG_INFO("GNC Simulation Framework Initializing...");
 
-        // --- 1. 实例化所有组件 ---
-        LOG_INFO("Creating simulation components...");
-        // 注意：这里用new，因为StateManager接管了所有权
-        // 环境
-        auto atmosphere = new SimpleAtmosphere(VEHICLE_1);
-        LOG_DEBUG("Created SimpleAtmosphere component");
-        
-        // 效应器
-        auto aerodynamics = new SimpleAerodynamics(VEHICLE_1);
-        
-        // **关键: 实例化一个偏置适配器，拦截真实气动力**
-        // 它读取真实气动力，输出一个被乘上1.2（即20%偏差）的"拉偏"后的气动力
-        auto aero_biaser = new BiasAdapter(VEHICLE_1, "AeroForceBiasAdapter", 
-                                           {{VEHICLE_1, "Aerodynamics"}, "aero_force_truth_N"}, 
-                                           "biased_aero_force_N", 1.2);
+        // 2. 创建状态管理器
+        gnc::StateManager state_manager;
 
-        // 动力学
-        auto dynamics = new RigidBodyDynamics6DoF(VEHICLE_1);
+        // 3. 从配置加载并创建组件
+        auto vehicles_config = config_manager.getComponentConfig("core", "simulation")["vehicles"];
 
-        // 传感器、导航、制导、控制...
-        auto imu_sensor = new IdealIMUSensor(VEHICLE_1);
-        auto navigation = new PerfectNavigation(VEHICLE_1);
-        auto guidance = new GuidanceLogic(VEHICLE_1);
-        auto control = new ControlLogic(VEHICLE_1);
+        for (const auto& vehicle_config : vehicles_config) {
+            gnc::states::VehicleId vehicle_id = vehicle_config["id"].get<gnc::states::VehicleId>();
+            LOG_INFO("Loading components for Vehicle ID: {}", vehicle_id);
 
-        // --- 2. 注册组件到管理器 ---
-        LOG_INFO("Registering components to StateManager...");
-        // 注册顺序不重要，组件管理器会自动排序
-        manager.registerComponent(atmosphere);
-        LOG_DEBUG("Registered SimpleAtmosphere component");
-        manager.registerComponent(aerodynamics);
-        manager.registerComponent(aero_biaser); // 注册拉偏组件
-        manager.registerComponent(dynamics);
-        manager.registerComponent(imu_sensor);
-        manager.registerComponent(navigation);
-        manager.registerComponent(guidance);
-        manager.registerComponent(control);
-        
-        // --- 3. 验证依赖并排序 ---
-        // 第一次更新前会自动调用
-        // manager.validateAndSortComponents(); 
-
-        // --- 4. 运行仿真循环 ---
-        const int num_steps = 5;
-        LOG_INFO("Starting simulation loop with {} time steps", num_steps);
-        
-        for (int i = 0; i < num_steps; ++i) {
-            LOG_INFO("=== Time Step {} ===", i);
-            
-            try {
-                manager.updateAll();
-                LOG_DEBUG("Time step {} completed successfully", i);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Error in time step {}: {}", i, e.what());
-                throw;
+            for (const auto& comp_type : vehicle_config["components"]) {
+                std::string type_str = comp_type.get<std::string>();
+                LOG_DEBUG("Creating component of type: {}", type_str.c_str());
+                
+                // 使用工厂创建组件实例
+                gnc::states::ComponentBase* component = gnc::ComponentFactory::getInstance().createComponent(type_str, vehicle_id);
+                
+                // 注册到状态管理器
+                state_manager.registerComponent(component);
             }
         }
 
-        LOG_INFO("=== Simulation Completed Successfully ===");
+        // 4. 验证依赖关系并启动仿真循环
+        state_manager.validateAndSortComponents();
 
-    } catch (const GncException& e) {
-        LOG_CRITICAL("GNC Exception: {}", e.what());
-        std::cerr << "ERROR: " << e.what() << std::endl;
-        gnc::components::utility::SimpleLogger::getInstance().shutdown();
-        return 1;
+        LOG_INFO("Starting simulation loop...");
+         for (int i = 0; i < 10; ++i) { // 示例循环
+             state_manager.updateAll();
+         }
+         LOG_INFO("Simulation loop finished.");
+
     } catch (const std::exception& e) {
-        LOG_CRITICAL("Standard exception: {}", e.what());
-        std::cerr << "A standard exception occurred: " << e.what() << std::endl;
-        gnc::components::utility::SimpleLogger::getInstance().shutdown();
+        LOG_CRITICAL("An unhandled exception occurred: {}", e.what());
         return 1;
     }
 

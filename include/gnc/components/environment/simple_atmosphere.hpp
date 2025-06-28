@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
@@ -21,5 +22,7 @@ protected:
         LOG_COMPONENT_DEBUG("Output air_density: {}", density);
     }
 };
+
+static gnc::ComponentRegistrar<SimpleAtmosphere> simple_atmosphere_registrar("SimpleAtmosphere");
 
 }

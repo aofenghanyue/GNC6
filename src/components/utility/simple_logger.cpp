@@ -115,7 +115,7 @@ void SimpleLogger::initializeFromConfig() {
     try {
         // 从配置管理器获取日志配置
         auto& config_manager = ConfigManager::getInstance();
-        auto logger_config = config_manager.getComponentConfig(ConfigFileType::UTILITY, "logger");
+        auto logger_config = config_manager.getComponentConfig(ConfigFileType::UTILITY, "utility.logger");
         
         LogSinkConfig sink_config;
         sink_config.console_enabled = logger_config.value("console_enabled", true);
@@ -126,7 +126,7 @@ void SimpleLogger::initializeFromConfig() {
         sink_config.async_enabled = logger_config.value("async_enabled", true);
         
         // 从配置文件获取logger名称
-        std::string config_logger_name = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "logger.name", "gnc_main");
+        std::string config_logger_name = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "utility.logger.name", "gnc_main");
         
         // 获取日志级别
         std::string level_str = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "utility.logger.level", "info");

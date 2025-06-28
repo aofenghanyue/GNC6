@@ -1,8 +1,21 @@
-# GNC 框架核心配置文件
-# 支持注释，提高配置文件的可读性和维护性
+# 核心配置文件
+core:
+  # 仿真配置
+  simulation:
+    vehicles:
+      - id: 1  # 飞行器ID
+        components:
+          # 按期望的逻辑顺序或任意顺序列出组件
+          # StateManager会自动处理依赖关系和执行顺序
+          - SimpleAtmosphere
+          - RigidBodyDynamics6DoF
+          - SimpleAerodynamics
+          - IdealIMUSensor
+          - PerfectNavigation
+          - GuidanceLogic
+          - ControlLogic
 
-# 全局系统配置
-global:
-  simulation_time_step: 0.01    # 仿真时间步长 (秒)
-  max_simulation_time: 1000.0   # 最大仿真时间 (秒)
-  real_time_factor: 1.0         # 实时因子 (1.0 = 实时，>1.0 = 加速，<1.0 = 减速)
+      # 可以轻松扩展到多飞行器
+      # - id: 2
+      #   components:
+      #     - ...

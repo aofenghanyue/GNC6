@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include <vector>
 #include "../utility/simple_logger.hpp"
 
@@ -38,5 +39,7 @@ private:
     std::vector<double> velocity_{100.0, 0.0, 0.0};
     std::vector<double> attitude_{1.0, 0.0, 0.0, 0.0}; // 单位四元数
 };
+
+static gnc::ComponentRegistrar<RigidBodyDynamics6DoF> rigid_body_dynamics_6dof_registrar("RigidBodyDynamics6DoF");
 
 }

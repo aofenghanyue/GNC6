@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../../core/component_registrar.hpp"
 #include <vector>
 #include "../utility/simple_logger.hpp"
 
@@ -24,4 +25,7 @@ protected:
         LOG_COMPONENT_DEBUG("Generated perfect PVA estimate");
     }
 };
+
+static gnc::ComponentRegistrar<PerfectNavigation> perfect_navigation_registrar("PerfectNavigation");
+
 }
