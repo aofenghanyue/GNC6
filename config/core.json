@@ -1,7 +1,0 @@
-{
-    "global": {
-        "simulation_time_step": 0.01,
-        "max_simulation_time": 1000.0,
-        "real_time_factor": 1.0
-    }
-}

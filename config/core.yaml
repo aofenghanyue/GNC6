@@ -1,0 +1,8 @@
+# GNC 框架核心配置文件
+# 支持注释，提高配置文件的可读性和维护性
+
+# 全局系统配置
+global:
+  simulation_time_step: 0.01    # 仿真时间步长 (秒)
+  max_simulation_time: 1000.0   # 最大仿真时间 (秒)
+  real_time_factor: 1.0         # 实时因子 (1.0 = 实时，>1.0 = 加速，<1.0 = 减速)

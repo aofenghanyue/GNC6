@@ -129,7 +129,7 @@ void SimpleLogger::initializeFromConfig() {
         std::string config_logger_name = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "logger.name", "gnc_main");
         
         // 获取日志级别
-        std::string level_str = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "logger.level", "info");
+        std::string level_str = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "utility.logger.level", "info");
         LogLevel level = LogLevel::INFO; // 默认级别
         
         // 转换字符串到日志级别

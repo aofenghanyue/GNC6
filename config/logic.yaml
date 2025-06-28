@@ -1,0 +1,56 @@
+# GNC 逻辑组件配置文件
+# 包含导航、制导、控制等核心算法组件的配置
+
+logic:
+  # 导航系统配置
+  navigation:
+    enabled: true
+    update_frequency: 100.0     # 更新频率 (Hz)
+    filter_type: "perfect"       # 滤波器类型: perfect, kalman, ekf, ukf
+    
+    # 卡尔曼滤波器配置 (当 filter_type 为 kalman/ekf/ukf 时使用)
+    kalman_filter:
+      process_noise_std: 0.01   # 过程噪声标准差
+      measurement_noise_std: 0.1 # 测量噪声标准差
+      initial_covariance: 1.0   # 初始协方差
+  
+  # 制导系统配置
+  guidance:
+    enabled: true
+    update_frequency: 50.0      # 更新频率 (Hz)
+    waypoint_tolerance: 1.0     # 航点容差 (米)
+    max_speed: 10.0            # 最大速度 (m/s)
+    max_acceleration: 2.0      # 最大加速度 (m/s²)
+    
+    # 路径规划配置
+    path_planning:
+      algorithm: "a_star"        # 路径规划算法: a_star, rrt, rrt_star
+      grid_resolution: 0.5      # 网格分辨率 (米)
+      safety_margin: 0.5        # 安全边距 (米)
+  
+  # 控制系统配置
+  control:
+    enabled: true
+    update_frequency: 200.0     # 更新频率 (Hz)
+    controller_type: "pid"       # 控制器类型: pid, lqr, mpc
+    
+    # PID 控制器参数
+    pid_gains:
+      position:
+        kp: 1.0                # 比例增益
+        ki: 0.1                # 积分增益
+        kd: 0.01               # 微分增益
+      velocity:
+        kp: 0.5
+        ki: 0.05
+        kd: 0.005
+      attitude:
+        kp: 2.0
+        ki: 0.2
+        kd: 0.02
+    
+    # 控制限制
+    limits:
+      max_thrust: 100.0         # 最大推力 (N)
+      max_torque: 10.0          # 最大力矩 (N·m)
+      max_control_rate: 1000.0  # 最大控制频率 (Hz)

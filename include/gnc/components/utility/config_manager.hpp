@@ -34,6 +34,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <yaml-cpp/yaml.h>
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -58,6 +59,21 @@ enum class ConfigFileType {
 };
 
 /**
+ * @brief 配置文件格式枚举
+ */
+enum class ConfigFileFormat {
+    JSON,        // JSON 格式
+    YAML         // YAML 格式
+};
+
+/**
+ * @brief 自动检测配置文件格式
+ * @param file_path 文件路径
+ * @return ConfigFileFormat 检测到的文件格式
+ */
+ConfigFileFormat detectConfigFormat(const std::string& file_path);
+
+/**
  * @brief 配置变更回调函数类型
  */
 using ConfigChangeCallback = std::function<void(ConfigFileType type, const std::string& section, const nlohmann::json& config)>;
@@ -76,19 +92,36 @@ public:
     static ConfigManager& getInstance();
 
     /**
-     * @brief 加载所有配置文件
+     * @brief 加载所有配置文件（自动检测格式）
      * @param config_dir_path 配置文件目录路径
      * @return bool 加载是否成功
      */
     bool loadConfigs(const std::string& config_dir_path);
 
     /**
-     * @brief 加载单个配置文件
+     * @brief 加载所有配置文件（指定格式）
+     * @param config_dir_path 配置文件目录路径
+     * @param format 配置文件格式
+     * @return bool 加载是否成功
+     */
+    bool loadConfigs(const std::string& config_dir_path, ConfigFileFormat format);
+
+    /**
+     * @brief 加载单个配置文件（自动检测格式）
      * @param type 配置文件类型
      * @param config_file_path 配置文件路径
      * @return bool 加载是否成功
      */
     bool loadConfig(ConfigFileType type, const std::string& config_file_path);
+
+    /**
+     * @brief 加载单个配置文件（指定格式）
+     * @param type 配置文件类型
+     * @param config_file_path 配置文件路径
+     * @param format 配置文件格式
+     * @return bool 加载是否成功
+     */
+    bool loadConfig(ConfigFileType type, const std::string& config_file_path, ConfigFileFormat format);
 
     /**
      * @brief 重新加载所有配置文件
@@ -154,18 +187,51 @@ public:
     void setConfigValue(ConfigFileType type, const std::string& json_path, const nlohmann::json& value);
 
     /**
-     * @brief 保存所有配置到文件
+     * @brief 保存所有配置到文件（使用原格式）
      * @return bool 保存是否成功
      */
     bool saveConfigs() const;
 
     /**
-     * @brief 保存指定类型的配置到文件
+     * @brief 保存所有配置到文件（指定格式）
+     * @param format 保存格式
+     * @return bool 保存是否成功
+     */
+    bool saveConfigs(ConfigFileFormat format) const;
+
+    /**
+     * @brief 保存指定类型的配置到文件（使用原格式）
      * @param type 配置文件类型
      * @param config_file_path 配置文件路径（可选）
      * @return bool 保存是否成功
      */
     bool saveConfig(ConfigFileType type, const std::string& config_file_path = "") const;
+
+    /**
+     * @brief 保存指定类型的配置到文件（指定格式）
+     * @param type 配置文件类型
+     * @param format 保存格式
+     * @param config_file_path 配置文件路径（可选）
+     * @return bool 保存是否成功
+     */
+    bool saveConfig(ConfigFileType type, ConfigFileFormat format, const std::string& config_file_path = "") const;
+
+    /**
+     * @brief 转换配置文件格式
+     * @param source_path 源文件路径
+     * @param target_path 目标文件路径
+     * @param target_format 目标格式
+     * @return bool 转换是否成功
+     */
+    bool convertConfigFormat(const std::string& source_path, const std::string& target_path, ConfigFileFormat target_format) const;
+
+    /**
+     * @brief 批量转换配置文件格式
+     * @param config_dir_path 配置目录路径
+     * @param target_format 目标格式
+     * @return bool 转换是否成功
+     */
+    bool convertAllConfigs(const std::string& config_dir_path, ConfigFileFormat target_format) const;
 
     /**
      * @brief 注册配置变更回调
@@ -253,9 +319,61 @@ private:
      */
     void notifyConfigChange(ConfigFileType type, const std::string& section);
 
+    /**
+     * @brief 从JSON文件加载配置
+     * @param file_path 文件路径
+     * @return nlohmann::json 配置对象
+     */
+    nlohmann::json loadJsonFile(const std::string& file_path) const;
+
+    /**
+     * @brief 从YAML文件加载配置
+     * @param file_path 文件路径
+     * @return nlohmann::json 配置对象
+     */
+    nlohmann::json loadYamlFile(const std::string& file_path) const;
+
+    /**
+     * @brief 保存配置到JSON文件
+     * @param config 配置对象
+     * @param file_path 文件路径
+     * @return bool 保存是否成功
+     */
+    bool saveJsonFile(const nlohmann::json& config, const std::string& file_path) const;
+
+    /**
+     * @brief 保存配置到YAML文件
+     * @param config 配置对象
+     * @param file_path 文件路径
+     * @return bool 保存是否成功
+     */
+    bool saveYamlFile(const nlohmann::json& config, const std::string& file_path) const;
+
+    /**
+     * @brief 将YAML节点转换为JSON对象
+     * @param yaml_node YAML节点
+     * @return nlohmann::json JSON对象
+     */
+    nlohmann::json yamlToJson(const YAML::Node& yaml_node) const;
+
+    /**
+     * @brief 将JSON对象转换为YAML节点
+     * @param json_obj JSON对象
+     * @return YAML::Node YAML节点
+     */
+    YAML::Node jsonToYaml(const nlohmann::json& json_obj) const;
+
+    /**
+     * @brief 获取配置文件的扩展名
+     * @param format 配置文件格式
+     * @return std::string 文件扩展名
+     */
+    std::string getConfigFileExtension(ConfigFileFormat format) const;
+
     // 成员变量
     std::unordered_map<ConfigFileType, nlohmann::json> configs_;  ///< 配置存储
     std::unordered_map<ConfigFileType, std::string> config_file_paths_;  ///< 配置文件路径
+    std::unordered_map<ConfigFileType, ConfigFileFormat> config_file_formats_;  ///< 配置文件格式
     std::string config_dir_path_;  ///< 配置目录路径
     std::unordered_map<ConfigFileType, std::unordered_map<std::string, ConfigChangeCallback>> callbacks_;  ///< 配置变更回调
 };

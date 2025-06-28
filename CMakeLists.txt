@@ -76,6 +76,23 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
+# ----------------------------------------------------------------------------
+# yaml-cpp 库
+# ----------------------------------------------------------------------------
+# 用途：C++ YAML 解析库，用于支持 YAML 格式的配置文件
+# 在 GNC 系统中用于更灵活的配置文件格式，支持注释和更好的可读性
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "禁用 yaml-cpp 库测试" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "禁用 yaml-cpp 工具" FORCE)
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "禁用 yaml-cpp contrib" FORCE)
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "构建 yaml-cpp 静态库" FORCE)
+set(YAML_CPP_BUILD_SHARED_LIBS OFF CACHE BOOL "构建 yaml-cpp 静态库" FORCE)
+FetchContent_Declare(
+  yaml-cpp
+  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+  # GIT_TAG        yaml-cpp-0.7.0  # 无论是 0.7.0 还是0.8.0版本，都会报错缺少cstdint头文件，默认不带tag的版本没问题
+)
+FetchContent_MakeAvailable(yaml-cpp)
+
 # ============================================================================
 # GNC 核心库构建配置
 # ============================================================================
@@ -98,17 +115,25 @@ set(GNC_ALL_SOURCES ${GNC_HEADERS} ${GNC_SOURCES})
 add_library(gnc_lib STATIC ${GNC_ALL_SOURCES})
 
 # 配置库的头文件搜索路径
-# PUBLIC：表示这些路径对链接此库的目标也可见
 target_include_directories(gnc_lib PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include     # GNC 自身的头文件目录
     ${EIGEN_INCLUDE_DIR}                    # Eigen 数学库（仅头文件库）
     ${nlohmann_json_SOURCE_DIR}/include     # JSON 库（仅头文件库）
     ${spdlog_SOURCE_DIR}/include            # spdlog 日志库头文件
+    ${yaml-cpp_SOURCE_DIR}/include          # yaml-cpp 库头文件
 )
 
-# 链接 spdlog 库到 GNC 库
-# PRIVATE：表示这个依赖关系不会传递给链接 gnc_lib 的其他目标
-target_link_libraries(gnc_lib PRIVATE spdlog::spdlog)
+# 链接第三方库到 GNC 库
+# PRIVATE：表示这些依赖关系不会传递给链接 gnc_lib 的其他目标
+target_link_libraries(gnc_lib PRIVATE 
+    spdlog::spdlog
+    yaml-cpp
+)
+
+# YAML_CPP_STATIC_DEFINE解决mingw环境下DLL导入警告问题
+if(WIN32)
+  target_compile_definitions(gnc_lib PUBLIC YAML_CPP_STATIC_DEFINE)
+endif()
 
 # ============================================================================
 # 主可执行文件构建配置
