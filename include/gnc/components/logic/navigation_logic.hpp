@@ -1,6 +1,7 @@
 #pragma once
 #include "../../core/component_base.hpp"
 #include <vector>
+#include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -16,7 +17,7 @@ protected:
     void updateImpl() override {
         auto pos_truth = getState<std::vector<double>>({{getVehicleId(), "Dynamics"}, "position_truth_m"});
         setState("pva_estimate", pos_truth); // 伪实现
-        std::cout << "    [Navigation] Generated perfect PVA estimate." << std::endl;
+        LOG_COMPONENT_DEBUG("Generated perfect PVA estimate");
     }
 };
 }

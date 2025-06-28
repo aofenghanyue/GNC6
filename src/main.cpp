@@ -25,12 +25,11 @@ int main() {
         
         gnc::components::utility::SimpleLogger::getInstance().initialize(
             "gnc_simulation", 
-            gnc::components::utility::LogLevel::INFO,
+            gnc::components::utility::LogLevel::DEBUG,
             log_config
         );
         
         LOG_INFO("=== GNC Meta-Framework Skeleton Simulation Started ===");
-        std::cout << "--- GNC Meta-Framework Skeleton Simulation ---" << std::endl;
         
         StateManager manager;
         const states::VehicleId VEHICLE_1 = 1;
@@ -85,7 +84,6 @@ int main() {
         
         for (int i = 0; i < num_steps; ++i) {
             LOG_INFO("=== Time Step {} ===", i);
-            std::cout << "\n--- Time Step " << i << " ---" << std::endl;
             
             try {
                 manager.updateAll();
@@ -97,7 +95,6 @@ int main() {
         }
 
         LOG_INFO("=== Simulation Completed Successfully ===");
-        std::cout << "\n--- Simulation Finished ---" << std::endl;
 
     } catch (const GncException& e) {
         LOG_CRITICAL("GNC Exception: {}", e.what());

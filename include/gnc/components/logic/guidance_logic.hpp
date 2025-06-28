@@ -2,6 +2,7 @@
 
 #include "../../core/component_base.hpp"
 #include <vector>
+#include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -15,7 +16,7 @@ public:
 protected:
     void updateImpl() override {
         setState("desired_throttle_level", 0.75); // 伪实现
-        std::cout << "    [Guidance] Output desired throttle: 0.75" << std::endl;
+        LOG_COMPONENT_DEBUG("Output desired throttle: 0.75");
     }
 };
 }

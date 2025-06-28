@@ -1,6 +1,7 @@
 #pragma once
 #include "../../core/component_base.hpp"
 #include <vector>
+#include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -17,7 +18,8 @@ protected:
         // 伪实现：理想传感器，直接输出一个常量
         std::vector<double> accel_measured = {0.1, 0.0, -9.8};
         setState("measured_acceleration", accel_measured);
-        std::cout << "    [IMU_Sensor] Output measured acceleration." << std::endl;
+        LOG_COMPONENT_DEBUG("Output measured acceleration: [{}, {}, {}]", 
+                  accel_measured[0], accel_measured[1], accel_measured[2]);
     }
 };
 }

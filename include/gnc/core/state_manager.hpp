@@ -8,8 +8,8 @@
 #include <memory>
 #include <any>
 #include <vector>
-#include <iostream>
 #include <functional> // for std::function in topological sort
+#include "../components/utility/simple_logger.hpp"
 
 namespace gnc {
 
@@ -54,14 +54,14 @@ public:
 
         component->setStateAccess(this);
         components_[id] = component;
-        std::cout << "[StateManager] Registered component: " << id.vehicleId << "-" << id.name << std::endl;
+        LOG_INFO("[StateManager] Registered component: {}-{}", id.vehicleId, id.name.c_str());
         needsRevalidation_ = true;
     }
 
     void validateAndSortComponents() {
         if (!needsRevalidation_) return;
 
-        std::cout << "[StateManager] Validating dependencies and performing topological sort..." << std::endl;
+        LOG_DEBUG("[StateManager] Validating dependencies and performing topological sort...");
         
         // 1. 构建依赖图
         std::unordered_map<ComponentId, std::unordered_set<ComponentId, std::hash<ComponentId>>> graph;
@@ -110,11 +110,10 @@ public:
         // 或者在加入时插到头部。这里直接用后序遍历顺序，意味着依赖项会先被更新。
         executionOrder_ = sorted_order;
 
-        std::cout << "[StateManager] Component execution order determined: ";
+        LOG_DEBUG("[StateManager] Component execution order determined");
         for(const auto& id : executionOrder_) {
-            std::cout << id.name << " -> ";
+            LOG_TRACE("Execution order: {}", id.name.c_str());
         }
-        std::cout << "END" << std::endl;
 
         needsRevalidation_ = false;
     }
@@ -125,7 +124,7 @@ public:
         }
         for (const auto& id : executionOrder_) {
             if (components_.count(id)) {
-                std::cout << "  [Update] -> " << id.name << std::endl;
+                LOG_TRACE("[Update] -> {}", id.name.c_str());
                 components_.at(id)->updateImpl();
             }
         }

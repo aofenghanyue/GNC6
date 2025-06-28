@@ -34,7 +34,9 @@
  */
 #pragma once
 // 告诉spdlog使用编译好的库版本，而不是头文件中的内联实现，从而避免符号重复定义
+#ifndef SPDLOG_COMPILED_LIB
 #define SPDLOG_COMPILED_LIB
+#endif
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -176,12 +178,12 @@ private:
  * @brief 组件日志器宏定义
  * 在组件类中使用，自动使用组件名称作为日志器名称
  */
-#define LOG_COMPONENT_TRACE(...)    if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName())) logger->trace(__VA_ARGS__)
-#define LOG_COMPONENT_DEBUG(...)    if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName())) logger->debug(__VA_ARGS__)
-#define LOG_COMPONENT_INFO(...)     if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName())) logger->info(__VA_ARGS__)
-#define LOG_COMPONENT_WARN(...)     if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName())) logger->warn(__VA_ARGS__)
-#define LOG_COMPONENT_ERROR(...)    if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName())) logger->error(__VA_ARGS__)
-#define LOG_COMPONENT_CRITICAL(...) if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName())) logger->critical(__VA_ARGS__)
+#define LOG_COMPONENT_TRACE(...)    if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName().c_str())) logger->trace(__VA_ARGS__)
+#define LOG_COMPONENT_DEBUG(...)    if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName().c_str())) logger->debug(__VA_ARGS__)
+#define LOG_COMPONENT_INFO(...)     if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName().c_str())) logger->info(__VA_ARGS__)
+#define LOG_COMPONENT_WARN(...)     if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName().c_str())) logger->warn(__VA_ARGS__)
+#define LOG_COMPONENT_ERROR(...)    if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName().c_str())) logger->error(__VA_ARGS__)
+#define LOG_COMPONENT_CRITICAL(...) if(auto logger = gnc::components::utility::SimpleLogger::getInstance().getComponentLogger(this->getName().c_str())) logger->critical(__VA_ARGS__)
 
 /**
  * @brief 带组件名称的日志宏定义

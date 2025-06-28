@@ -1,7 +1,7 @@
 #pragma once
 #include "../../core/component_base.hpp"
 #include <vector>
-#include <iostream>
+#include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -27,7 +27,7 @@ protected:
         setState("position_truth_m", position_);
         setState("velocity_truth_mps", velocity_);
         setState("attitude_truth_quat", attitude_);
-        std::cout << "    [Dynamics] Updated truth state. Position X: " << position_[0] << std::endl;
+        LOG_COMPONENT_DEBUG("Updated truth state. Position X: {}", position_[0]);
     }
 private:
     std::vector<double> position_{0.0, 0.0, 0.0};

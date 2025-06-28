@@ -1,6 +1,7 @@
 #pragma once
 #include "../../core/component_base.hpp"
 #include <vector> // 仅作类型示例
+#include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -25,7 +26,7 @@ protected:
         std::vector<double> force = {drag, 0.0, 0.0}; // 假设沿X轴负方向
         
         setState("aero_force_truth_N", force);
-        std::cout << "    [Aerodynamics] Calculated aero force (truth): " << force[0] << std::endl;
+        LOG_COMPONENT_DEBUG("Calculated aero force (truth): {}", force[0]);
     }
 };
 

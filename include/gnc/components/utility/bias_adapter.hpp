@@ -1,6 +1,7 @@
 #pragma once
 #include "../../core/component_base.hpp"
 #include <vector>
+#include "simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -27,8 +28,8 @@ protected:
         
         // 输出拉偏后的值
         setState(getInterface().getOutputs()[0].name, biased_value);
-        std::cout << "    [" << getName() << "] Applied bias factor " << bias_factor_ 
-                  << ". Original: " << original_value[0] << ", Biased: " << biased_value[0] << std::endl;
+        LOG_COMPONENT_DEBUG("Applied bias factor {}. Original: {}, Biased: {}", 
+                  bias_factor_, original_value[0], biased_value[0]);
     }
 private:
     double bias_factor_;

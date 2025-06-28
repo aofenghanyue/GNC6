@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/component_base.hpp"
+#include "../utility/simple_logger.hpp"
 
 namespace gnc::components {
 
@@ -13,7 +14,7 @@ protected:
     void updateImpl() override {
         double density = 1.225; // 海平面标准大气密度
         setState("air_density_kg_m3", density);
-        std::cout << "    [Atmosphere] Output air_density: " << density << std::endl;
+        LOG_COMPONENT_DEBUG("Output air_density: {}", density);
     }
 };
 

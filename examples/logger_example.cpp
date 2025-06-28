@@ -20,7 +20,7 @@ using namespace gnc::components::utility;
 /**
  * @brief 示例组件类，演示组件内日志使用
  */
-class ExampleComponent : public gnc::ComponentBase {
+class ExampleComponent : public gnc::states::ComponentBase {
 public:
     ExampleComponent(gnc::states::VehicleId vehicle_id) 
         : ComponentBase(vehicle_id, "ExampleComponent") {
@@ -106,7 +106,7 @@ void demonstrateLogConfiguration() {
     LOG_INFO("Current configuration:");
     LOG_INFO("  Console output: {}", custom_config.console_enabled ? "enabled" : "disabled");
     LOG_INFO("  File output: {}", custom_config.file_enabled ? "enabled" : "disabled");
-    LOG_INFO("  Log file: {}", custom_config.file_path);
+    LOG_INFO("  Log file: {}", custom_config.file_path.c_str());
     LOG_INFO("  Max file size: {} bytes", custom_config.max_file_size);
     LOG_INFO("  Max files: {}", custom_config.max_files);
     LOG_INFO("  Async logging: {}", custom_config.async_enabled ? "enabled" : "disabled");
@@ -170,7 +170,7 @@ void demonstrateComponentLogging() {
     // 模拟组件更新
     LOG_INFO("Simulating component updates...");
     for (int i = 0; i < 15; ++i) {
-        component.update();
+        // component.updateImpl();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
