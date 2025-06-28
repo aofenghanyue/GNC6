@@ -19,7 +19,6 @@ using namespace states;
 /**
  * @brief 状态管理器，元框架的核心。
  * @details 负责组件的生命周期、状态数据的存储，以及通过依赖分析自动确定执行顺序。
- *          不再需要独立的StateRouter，其功能被内聚于此。
  */
 class StateManager : public IStateAccess {
 public:
@@ -111,9 +110,14 @@ public:
         executionOrder_ = sorted_order;
 
         LOG_DEBUG("[StateManager] Component execution order determined");
+        
+        // 多行输出执行链条，保持视觉连贯性
+        LOG_INFO("[StateManager] Execution chain:");
+        LOG_INFO("  ┌─ LOOP_START");
         for(const auto& id : executionOrder_) {
-            LOG_TRACE("Execution order: {}", id.name.c_str());
+            LOG_INFO("  ├─ {}", id.name.c_str());
         }
+        LOG_INFO("  └─ LOOP_END");
 
         needsRevalidation_ = false;
     }

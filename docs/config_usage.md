@@ -127,7 +127,7 @@ if (!config_manager.loadConfigs("config/")) {
 #include "gnc/components/utility/simple_logger.hpp"
 
 // 从多文件配置初始化日志系统
-SimpleLogger::getInstance().initializeFromConfig("my_app");
+SimpleLogger::getInstance().initializeFromConfig();
 ```
 
 ### 3. 获取配置值
@@ -304,7 +304,7 @@ int main() {
         config_manager.loadConfigs("config/");
         
         // 初始化日志系统
-        SimpleLogger::getInstance().initializeFromConfig("gnc_simulation");
+        SimpleLogger::getInstance().initializeFromConfig();
         
         // 从配置创建组件
         auto dynamics_config = config_manager.getComponentConfig(

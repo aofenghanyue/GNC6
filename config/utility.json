@@ -1,4 +1,14 @@
 {
+    "logger": {
+        "name": "gnc_simulation",
+        "console_enabled": true,
+        "file_enabled": true,
+        "file_path": "logs/gnc.log",
+        "max_file_size": 10485760,
+        "max_files": 5,
+        "async_enabled": true,
+        "level": "trace"
+    },
     "components": {
         "bias_adapter": {
             "enabled": true,

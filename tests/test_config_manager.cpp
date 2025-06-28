@@ -161,8 +161,7 @@ void testDefaultConfig() {
 void testLoggerIntegration() {
     std::cout << "Testing logger integration..." << std::endl;
     
-    // 从多配置初始化日志系统
-    SimpleLogger::getInstance().initializeFromConfig("test_logger");
+    // 日志系统现在会自动初始化，logger名称从配置文件读取
     
     // 测试日志输出
     auto main_logger = SimpleLogger::getInstance().getMainLogger();

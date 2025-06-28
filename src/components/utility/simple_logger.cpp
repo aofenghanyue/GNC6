@@ -22,6 +22,12 @@ namespace utility {
 
 SimpleLogger& SimpleLogger::getInstance() {
     static SimpleLogger instance;
+    
+    // 自动初始化：如果还未初始化，则从配置文件自动初始化
+    if (!instance.initialized_) {
+        instance.initializeFromConfig();
+    }
+    
     return instance;
 }
 
@@ -98,7 +104,7 @@ void SimpleLogger::initialize(const std::string& logger_name,
 
 
 
-void SimpleLogger::initializeFromConfig(const std::string& logger_name) {
+void SimpleLogger::initializeFromConfig() {
     if (initialized_) {
         if (main_logger_) {
             main_logger_->warn("Logger already initialized, skipping re-initialization");
@@ -107,12 +113,15 @@ void SimpleLogger::initializeFromConfig(const std::string& logger_name) {
     }
 
     try {
-        // 从多文件配置管理器获取日志配置
+        // 从配置管理器获取日志配置
         auto& config_manager = ConfigManager::getInstance();
-    auto sink_config = config_manager.getLoggerConfig();
-    
-    // 获取日志级别
-    std::string level_str = config_manager.getConfigValue<std::string>(ConfigFileType::CORE, "logger.level", "info");
+        auto sink_config = config_manager.getLoggerConfig();
+        
+        // 从配置文件获取logger名称
+        std::string config_logger_name = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "logger.name", "gnc_main");
+        
+        // 获取日志级别
+        std::string level_str = config_manager.getConfigValue<std::string>(ConfigFileType::UTILITY, "logger.level", "info");
         LogLevel level = LogLevel::INFO; // 默认级别
         
         // 转换字符串到日志级别
@@ -125,18 +134,20 @@ void SimpleLogger::initializeFromConfig(const std::string& logger_name) {
         else if (level_str == "off") level = LogLevel::OFF;
         
         // 使用配置初始化日志系统
-        initialize(logger_name, level, sink_config);
+        initialize(config_logger_name, level, sink_config);
         
         if (main_logger_) {
-            main_logger_->info("Logger initialized from multi-config");
+            main_logger_->info("Logger initialized from config");
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Failed to initialize logger from multi-config: " << e.what() << std::endl;
+        std::cerr << "Failed to initialize logger from config: " << e.what() << std::endl;
         // 使用默认配置作为备用
-        initialize(logger_name);
+        initialize("gnc_default");
     }
 }
+
+
 
 std::shared_ptr<spdlog::logger> SimpleLogger::getMainLogger() {
     if (!initialized_) {

@@ -39,7 +39,7 @@ int main() {
         
         // 2. 从配置初始化日志系统
         std::cout << "\n2. 从配置初始化日志系统..." << std::endl;
-        SimpleLogger::getInstance().initializeFromConfig("config_example");
+        SimpleLogger::getInstance().initializeFromConfig();
         std::cout << "   ✓ 日志系统初始化完成" << std::endl;
         
         LOG_INFO("配置管理器示例开始");

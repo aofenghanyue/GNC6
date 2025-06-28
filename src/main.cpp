@@ -18,14 +18,11 @@ using namespace gnc::components;
 
 int main() {
     try {
-        // 初始化多文件配置管理器
+        // 初始化配置管理器
         auto& config_manager = gnc::components::utility::ConfigManager::getInstance();
         if (!config_manager.loadConfigs("config/")) {
             std::cerr << "Warning: Failed to load some configuration files, using defaults" << std::endl;
         }
-        
-        // 从多文件配置初始化日志系统
-        gnc::components::utility::SimpleLogger::getInstance().initializeFromConfig("gnc_simulation");
         
         LOG_INFO("=== GNC Meta-Framework Skeleton Simulation Started ===");
         
