@@ -2,20 +2,37 @@
 core:
   # 仿真配置
   simulation:
-    vehicles:
-      - id: 1  # 飞行器ID
-        components:
-          # 按期望的逻辑顺序或任意顺序列出组件
-          # StateManager会自动处理依赖关系和执行顺序
-          - SimpleAtmosphere
-          - RigidBodyDynamics6DoF
-          - SimpleAerodynamics
-          - IdealIMUSensor
-          - PerfectNavigation
-          - GuidanceLogic
-          - ControlLogic
+    name: "GNC_Simulation"
+    description: "GNC仿真框架测试"
+    # 时间配置
+    time:
+      step: 0.01          # 仿真步长（秒）
+      max_time: 1000.0    # 最大仿真时间（秒）
+      max_steps: 100000   # 最大步数
+    # 调度配置
+    scheduler:
+      policy: "FIXED_STEP"  # 调度策略：FIXED_STEP, VARIABLE_STEP, EVENT_DRIVEN
+    # 事件配置
+    events:
+      - name: "simulation_start"
+        triggers: ["log_start", "initialize_recording"]
+      - name: "simulation_end"
+        triggers: ["save_data", "generate_report"]
+  # 飞行器配置
+  vehicles:
+    - id: 1  # 飞行器ID
+      components:
+        # 按期望的逻辑顺序或任意顺序列出组件
+        # StateManager会自动处理依赖关系和执行顺序
+        - SimpleAtmosphere
+        - RigidBodyDynamics6DoF
+        - SimpleAerodynamics
+        - IdealIMUSensor
+        - PerfectNavigation
+        - GuidanceLogic
+        - ControlLogic
 
-      # 可以轻松扩展到多飞行器
-      # - id: 2
-      #   components:
-      #     - ...
+    # 可以轻松扩展到多飞行器
+    # - id: 2
+    #   components:
+    #     - ...

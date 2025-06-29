@@ -28,7 +28,7 @@ int main() {
         gnc::StateManager state_manager;
 
         // 3. 从配置加载并创建组件
-        auto vehicles_config = config_manager.getComponentConfig("core", "simulation")["vehicles"];
+        auto vehicles_config = config_manager.getConfig(utility::ConfigFileType::CORE)["core"]["vehicles"];
 
         for (const auto& vehicle_config : vehicles_config) {
             gnc::states::VehicleId vehicle_id = vehicle_config["id"].get<gnc::states::VehicleId>();
