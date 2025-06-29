@@ -33,9 +33,10 @@ public:
      * @brief 构造函数
      * 
      * @param id 飞行器ID
+     * @param instanceName 组件实例名称（可选）
      */
-    PhasedGuidanceLogic(states::VehicleId id)
-        : states::ComponentBase(id, "Guidance"), 
+    PhasedGuidanceLogic(states::VehicleId id, const std::string& instanceName = "")
+        : states::ComponentBase(id, "Guidance", instanceName), 
           cycle_count_(0) {
         
         // 声明输入状态

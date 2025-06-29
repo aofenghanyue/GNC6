@@ -9,7 +9,8 @@ namespace gnc::components {
 // 导航组件（此处简化为直通）
 class PerfectNavigation : public states::ComponentBase {
 public:
-    PerfectNavigation(states::VehicleId id) : states::ComponentBase(id, "Navigation") {
+    PerfectNavigation(states::VehicleId id, const std::string& instanceName = "") 
+        : states::ComponentBase(id, "Navigation", instanceName) {
         // declareInput<std::vector<double>>("pos_truth", {{id, "Dynamics"}, "position_truth_m"}, false);
         declareInput<std::vector<double>>("pos_measured", {{id, "IMU_Sensor"}, "measured_acceleration"});
         declareOutput<std::vector<double>>("pva_estimate");

@@ -10,8 +10,8 @@
 
 namespace gnc {
 
-// 创建者函数的类型定义：接受一个VehicleId，返回一个ComponentBase指针
-using ComponentCreator = std::function<states::ComponentBase*(states::VehicleId)>;
+// 创建者函数的类型定义：接受VehicleId和组件名称，返回一个ComponentBase指针
+using ComponentCreator = std::function<states::ComponentBase*(states::VehicleId, const std::string&)>;
 
 class ComponentFactory {
 public:
@@ -42,15 +42,16 @@ public:
      * @brief 根据类型字符串创建组件实例
      * @param type 要创建的组件类型
      * @param id 飞行器ID
+     * @param instanceName 组件实例名称，如果为空则使用默认名称
      * @return 指向新创建组件的指针，如果类型未注册则返回nullptr
      */
-    states::ComponentBase* createComponent(const std::string& type, states::VehicleId id) {
+    states::ComponentBase* createComponent(const std::string& type, states::VehicleId id, const std::string& instanceName = "") {
         auto it = creators_.find(type);
         if (it == creators_.end()) {
             LOG_ERROR("[Factory] Component type '{}' not found.", type.c_str());
             throw gnc::ConfigurationError("ComponentFactory", "Component type '" + type + "' not registered.");
         }
-        return it->second(id);
+        return it->second(id, instanceName);
     }
 
 private:

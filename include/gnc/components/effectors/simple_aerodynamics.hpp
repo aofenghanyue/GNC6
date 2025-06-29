@@ -9,7 +9,8 @@ namespace gnc::components {
 // 演示一个有输入的效应器组件
 class SimpleAerodynamics : public states::ComponentBase {
 public:
-    SimpleAerodynamics(states::VehicleId id) : states::ComponentBase(id, "Aerodynamics") {
+    SimpleAerodynamics(states::VehicleId id, const std::string& instanceName = "") 
+        : states::ComponentBase(id, "Aerodynamics", instanceName) {
         // 依赖大气密度和飞行器速度（来自理想传感器）
         declareInput<double>("air_density_kg_m3", { {id, "Atmosphere"}, "air_density_kg_m3" });
         // declareInput<std::vector<double>>("velocity_truth_mps", { {id, "Dynamics"}, "velocity_truth_mps" }, false);

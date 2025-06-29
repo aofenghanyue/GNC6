@@ -24,12 +24,17 @@ core:
       components:
         # 按期望的逻辑顺序或任意顺序列出组件
         # StateManager会自动处理依赖关系和执行顺序
+        # 支持两种格式：
+        # 1. 简单字符串格式（向后兼容）
         - SimpleAtmosphere
         - RigidBodyDynamics6DoF
         - SimpleAerodynamics
         - IdealIMUSensor
         - PerfectNavigation
-        - PhasedGuidanceLogic
+        - type: GuidanceLogic
+          name: GuidanceWithoutPhase
+        - type: PhasedGuidanceLogic
+          name: GuidanceWithPhase
         - ControlLogic
 
     # 可以轻松扩展到多飞行器

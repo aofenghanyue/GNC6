@@ -8,7 +8,8 @@ namespace gnc::components {
 // 演示一个没有输入的纯数据源组件
 class SimpleAtmosphere : public states::ComponentBase {
 public:
-    SimpleAtmosphere(states::VehicleId id) : states::ComponentBase(id, "Atmosphere") {
+    SimpleAtmosphere(states::VehicleId id, const std::string& instanceName = "") 
+        : states::ComponentBase(id, "Atmosphere", instanceName) {
         declareOutput<double>("air_density_kg_m3");
     }
 

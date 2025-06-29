@@ -78,8 +78,8 @@ public:
      * @param name 组件名称
      * @param initial_state 初始状态名称
      */
-    FlowController(states::VehicleId id, const std::string& name, const StateType& initial_state)
-        : states::ComponentBase(id, name), current_state_(initial_state), initial_state_(initial_state) {
+    FlowController(states::VehicleId id, const std::string& instanceName, const StateType& initial_state)
+        : states::ComponentBase(id, "FlowController", instanceName), current_state_(initial_state), initial_state_(initial_state) {
         
         // 声明输出状态
         declareOutput<StateType>("current_state");  // 当前状态

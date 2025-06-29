@@ -33,9 +33,10 @@ public:
      * @brief 构造函数
      * 
      * @param id 飞行器ID
+     * @param instanceName 组件实例名称（可选）
      */
-    FlightPhaseManager(states::VehicleId id)
-        : states::ComponentBase(id, "FlightPhaseManager") {
+    FlightPhaseManager(states::VehicleId id, const std::string& instanceName = "")
+        : states::ComponentBase(id, "FlightPhaseManager", instanceName) {
         
         // 声明输入状态
         declareInput<double>("altitude", {{id, "Navigation"}, "altitude"});

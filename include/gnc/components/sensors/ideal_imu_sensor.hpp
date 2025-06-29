@@ -9,7 +9,8 @@ namespace gnc::components {
 // 传感器组件，消费真值，输出带偏置的测量值
 class IdealIMUSensor : public states::ComponentBase {
 public:
-    IdealIMUSensor(states::VehicleId id) : states::ComponentBase(id, "IMU_Sensor") {
+    IdealIMUSensor(states::VehicleId id, const std::string& instanceName = "") 
+        : states::ComponentBase(id, "IMU_Sensor", instanceName) {
         // declareInput<std::vector<double>>("velocity_truth", {{id, "Dynamics"}, "velocity_truth_mps"}, false);
         declareOutput<std::vector<double>>("measured_acceleration");
     }

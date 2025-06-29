@@ -9,7 +9,8 @@ namespace gnc::components {
 // 演示一个核心动力学模型，它消费的是可能被拉偏后的力
 class RigidBodyDynamics6DoF : public states::ComponentBase {
 public:
-    RigidBodyDynamics6DoF(states::VehicleId id) : states::ComponentBase(id, "Dynamics") {
+    RigidBodyDynamics6DoF(states::VehicleId id, const std::string& instanceName = "") 
+        : states::ComponentBase(id, "Dynamics", instanceName) {
         // 依赖的是经过适配器拉偏后的气动力
         declareInput<std::vector<double>>("aero_force_truth_N", { {id, "Aerodynamics"}, "aero_force_truth_N" });
         

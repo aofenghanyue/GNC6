@@ -78,6 +78,10 @@ class ComponentBase {
 public:
     ComponentBase(VehicleId vehicleId, std::string name)
         : vehicleId_{vehicleId}, name_{std::move(name)} {}
+    
+    // 支持可选实例名称的构造函数
+    ComponentBase(VehicleId vehicleId, std::string defaultName, const std::string& instanceName)
+        : vehicleId_{vehicleId}, name_{instanceName.empty() ? std::move(defaultName) : instanceName} {}
 
     virtual ~ComponentBase() = default;
 

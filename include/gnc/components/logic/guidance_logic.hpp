@@ -10,7 +10,8 @@ namespace gnc::components {
 // 制导逻辑组件
 class GuidanceLogic : public states::ComponentBase {
 public:
-    GuidanceLogic(states::VehicleId id) : states::ComponentBase(id, "Guidance") {
+    GuidanceLogic(states::VehicleId id, const std::string& instanceName = "") 
+        : states::ComponentBase(id, "Guidance", instanceName) {
         declareInput<std::vector<double>>("nav_pva", {{id, "Navigation"}, "pva_estimate"});
         declareOutput<double>("desired_throttle_level"); // 输出一个油门指令
     }
