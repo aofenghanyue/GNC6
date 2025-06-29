@@ -92,6 +92,19 @@
         "coroutine": "cpp",
         "resumable": "cpp",
         "*.rh": "cpp",
-        "*.def": "cpp"
+        "*.def": "cpp",
+        "cassert": "cpp",
+        "ccomplex": "cpp",
+        "cerrno": "cpp",
+        "cfloat": "cpp",
+        "ciso646": "cpp",
+        "climits": "cpp",
+        "string_view": "cpp",
+        "version": "cpp",
+        "iterativelinearsolvers": "cpp",
+        "matrixfunctions": "cpp",
+        "nonlinearoptimization": "cpp",
+        "numericaldiff": "cpp",
+        "polynomials": "cpp"
     }
 }

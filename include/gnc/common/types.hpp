@@ -17,7 +17,8 @@ namespace gnc::states {
  * @brief 飞行器标识符类型
  * @details 使用64位无符号整数作为飞行器的唯一标识，支持大规模分布式系统
  */
-using VehicleId = uint64_t;   
+using VehicleId = uint64_t;
+const uint64_t globalId = 0;
 
 /**
  * @brief 组件标识符
