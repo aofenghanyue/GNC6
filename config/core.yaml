@@ -29,7 +29,7 @@ core:
         - SimpleAerodynamics
         - IdealIMUSensor
         - PerfectNavigation
-        - GuidanceLogic
+        - PhasedGuidanceLogic
         - ControlLogic
 
     # 可以轻松扩展到多飞行器

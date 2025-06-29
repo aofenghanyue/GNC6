@@ -66,6 +66,7 @@ void testComponentConfig() {
     
     assert(!dynamics_config.empty() && "Dynamics config should not be empty");
     assert(dynamics_config.contains("mass") && "Dynamics config should contain 'mass'");
+    assert(dynamics_config["mass"]==1000.0 && "Dynamics config mass should be 1000.0");
     
     std::cout << "✓ Component config test passed" << std::endl;
 }

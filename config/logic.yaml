@@ -28,6 +28,12 @@ logic:
       grid_resolution: 0.5      # 网格分辨率 (米)
       safety_margin: 0.5        # 安全边距 (米)
   
+  # 分阶段制导律配置
+  phased_guidance:
+    # 阶段切换配置
+    phase_switching:
+      initial_phase_cycles: 5   # 初始阶段运行周期数
+    
   # 控制系统配置
   control:
     enabled: true

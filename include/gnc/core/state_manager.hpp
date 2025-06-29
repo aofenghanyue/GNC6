@@ -122,6 +122,26 @@ public:
 
         LOG_DEBUG("[StateManager] Component execution order determined");
         
+        // 3.检测拓扑排序后的组件是否都已注册
+        std::vector<std::string> unregistered_components;
+        for(const auto& id : executionOrder_) {
+            if (components_.find(id) == components_.end()) {
+                unregistered_components.push_back(id.name);
+            }
+        }
+        
+        if (!unregistered_components.empty()) {
+            std::string error_msg = "The following components in execution order are not registered: ";
+            for (size_t i = 0; i < unregistered_components.size(); ++i) {
+                error_msg += unregistered_components[i];
+                if (i < unregistered_components.size() - 1) {
+                    error_msg += ", ";
+                }
+            }
+            LOG_ERROR("[StateManager] {}", error_msg.c_str());
+            throw ConfigurationError("StateManager", error_msg);
+        }
+        
         // 多行输出执行链条，保持视觉连贯性
         LOG_INFO("[StateManager] Execution chain:");
         LOG_INFO("  ┌─ LOOP_START");
@@ -129,6 +149,8 @@ public:
             LOG_INFO("  ├─ {}", id.name.c_str());
         }
         LOG_INFO("  └─ LOOP_END");
+        
+        LOG_INFO("[StateManager] All components in execution order are properly registered.");
 
         // 3. 初始化所有组件
         LOG_INFO("[StateManager] Initializing components...");

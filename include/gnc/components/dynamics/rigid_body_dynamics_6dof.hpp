@@ -11,7 +11,7 @@ class RigidBodyDynamics6DoF : public states::ComponentBase {
 public:
     RigidBodyDynamics6DoF(states::VehicleId id) : states::ComponentBase(id, "Dynamics") {
         // 依赖的是经过适配器拉偏后的气动力
-        declareInput<std::vector<double>>("total_force_N", { {id, "AeroForceBiasAdapter"}, "biased_aero_force_N" });
+        declareInput<std::vector<double>>("aero_force_truth_N", { {id, "Aerodynamics"}, "aero_force_truth_N" });
         
         // 输出真值状态
         declareOutput<std::vector<double>>("position_truth_m", std::vector<double>{0.0, 0.0, 0.0});

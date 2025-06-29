@@ -11,8 +11,8 @@
 #include "gnc/components/dynamics/rigid_body_dynamics_6dof.hpp"
 #include "gnc/components/sensors/ideal_imu_sensor.hpp"
 #include "gnc/components/logic/navigation_logic.hpp"
-#include "gnc/components/logic/guidance_logic.hpp"
 #include "gnc/components/logic/control_logic.hpp"
+#include "gnc/components/logic/phased_guidance_logic.hpp"
 
 using namespace gnc;
 using namespace gnc::components;

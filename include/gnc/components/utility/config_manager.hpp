@@ -25,7 +25,7 @@
  *    ConfigManager::getInstance().loadConfigs("config/");
  *    
  *    // 获取日志配置
-     *    auto logConfig = ConfigManager::getInstance().getComponentConfig(ConfigFileType::UTILITY, "logger");
+ *    auto logConfig = ConfigManager::getInstance().getComponentConfig(ConfigFileType::UTILITY, "logger");
  *    
  *    // 获取组件配置
  *    auto navConfig = ConfigManager::getInstance().getComponentConfig("logic", "navigation");

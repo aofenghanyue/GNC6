@@ -1,3 +1,4 @@
+// 已经摒弃了这种中间件，改用disturb组件统一管理拉偏
 #pragma once
 #include "../../core/component_base.hpp"
 #include <vector>

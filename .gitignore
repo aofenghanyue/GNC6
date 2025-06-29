@@ -26,6 +26,7 @@ consoleOutTemp*.log
 *.orig
 
 # Documentation
+planning_docs/
 docs/html/
 docs/latex/
 doxygen_warnings.txt

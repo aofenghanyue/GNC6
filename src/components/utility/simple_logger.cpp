@@ -115,7 +115,7 @@ void SimpleLogger::initializeFromConfig() {
     try {
         // 从配置管理器获取日志配置
         auto& config_manager = ConfigManager::getInstance();
-        auto logger_config = config_manager.getComponentConfig(ConfigFileType::UTILITY, "utility.logger");
+        auto logger_config = config_manager.getConfig(ConfigFileType::UTILITY)["utility"]["logger"];
         
         LogSinkConfig sink_config;
         sink_config.console_enabled = logger_config.value("console_enabled", true);
