@@ -102,7 +102,7 @@ FetchContent_MakeAvailable(yaml-cpp)
 # 递归搜索所有 GNC 源文件（头文件和实现文件）
 # 包括 include/gnc/ 目录下的所有 .hpp 文件和 src/ 目录下的 .cpp 文件
 file(GLOB_RECURSE GNC_HEADERS "include/gnc/*.hpp")
-file(GLOB_RECURSE GNC_SOURCES "src/**/*.cpp")
+file(GLOB_RECURSE GNC_SOURCES "src/*.cpp")
 
 # 合并头文件和源文件
 set(GNC_ALL_SOURCES ${GNC_HEADERS} ${GNC_SOURCES})
