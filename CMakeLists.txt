@@ -94,6 +94,43 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(yaml-cpp)
 
 # ============================================================================
+# 自动组件注册配置
+# ============================================================================
+# 自动扫描 components 目录下的所有组件头文件，生成自动包含文件
+# 这样用户只需要编写组件代码，不需要手动在 simulator.cpp 中添加包含语句
+
+# 扫描 components 目录下的所有头文件
+file(GLOB_RECURSE COMPONENT_HEADERS "include/gnc/components/*.hpp")
+
+# 设置自动生成的包含文件路径
+set(AUTO_INCLUDE_FILE "${CMAKE_CURRENT_BINARY_DIR}/generated/auto_component_includes.hpp")
+
+# 确保生成目录存在
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+# 生成自动包含文件的内容
+set(AUTO_INCLUDE_CONTENT "// Auto-generated file - DO NOT EDIT\n")
+set(AUTO_INCLUDE_CONTENT "${AUTO_INCLUDE_CONTENT}// This file automatically includes all component headers for registration\n")
+set(AUTO_INCLUDE_CONTENT "${AUTO_INCLUDE_CONTENT}// Generated at build time by CMake\n\n")
+set(AUTO_INCLUDE_CONTENT "${AUTO_INCLUDE_CONTENT}#pragma once\n\n")
+
+# 为每个组件头文件添加包含语句
+foreach(HEADER ${COMPONENT_HEADERS})
+    # 计算相对于项目根目录的路径
+    file(RELATIVE_PATH REL_HEADER "${CMAKE_CURRENT_SOURCE_DIR}" "${HEADER}")
+    # 转换为包含语句格式
+    string(REPLACE "include/" "" INCLUDE_PATH "${REL_HEADER}")
+    set(AUTO_INCLUDE_CONTENT "${AUTO_INCLUDE_CONTENT}#include \"${INCLUDE_PATH}\"\n")
+endforeach()
+
+# 写入自动生成的包含文件
+file(WRITE "${AUTO_INCLUDE_FILE}" "${AUTO_INCLUDE_CONTENT}")
+
+# 输出生成信息
+message(STATUS "Generated auto component includes: ${AUTO_INCLUDE_FILE}")
+message(STATUS "Found ${CMAKE_MATCH_COUNT} component headers")
+
+# ============================================================================
 # GNC 核心库构建配置
 # ============================================================================
 # 将所有 GNC 核心功能编译为静态库，便于代码复用和模块化管理
@@ -104,8 +141,8 @@ FetchContent_MakeAvailable(yaml-cpp)
 file(GLOB_RECURSE GNC_HEADERS "include/gnc/*.hpp")
 file(GLOB_RECURSE GNC_SOURCES "src/*.cpp")
 
-# 合并头文件和源文件
-set(GNC_ALL_SOURCES ${GNC_HEADERS} ${GNC_SOURCES})
+# 合并头文件和源文件，包括自动生成的组件包含文件
+set(GNC_ALL_SOURCES ${GNC_HEADERS} ${GNC_SOURCES} ${AUTO_INCLUDE_FILE})
 
 # 创建 GNC 静态库
 # 静态库的优势：
@@ -117,6 +154,7 @@ add_library(gnc_lib STATIC ${GNC_ALL_SOURCES})
 # 配置库的头文件搜索路径
 target_include_directories(gnc_lib PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include     # GNC 自身的头文件目录
+    ${CMAKE_CURRENT_BINARY_DIR}/generated   # 自动生成的文件目录
     ${EIGEN_INCLUDE_DIR}                    # Eigen 数学库（仅头文件库）
     ${nlohmann_json_SOURCE_DIR}/include     # JSON 库（仅头文件库）
     ${spdlog_SOURCE_DIR}/include            # spdlog 日志库头文件
