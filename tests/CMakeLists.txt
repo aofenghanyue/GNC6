@@ -11,25 +11,23 @@ FetchContent_Declare(
 # Make GoogleTest available
 FetchContent_MakeAvailable(googletest)
 
-# Create a basic test executable
-add_executable(gnc_tests main.cpp)
-
-# Link the test executable against gtest and our gnc_lib
-target_link_libraries(gnc_tests PRIVATE gtest_main gnc_lib)
-
-# Add the test to CTest with a specific label
-include(GoogleTest)
-gtest_discover_tests(gnc_tests 
-    PROPERTIES LABELS "gnc_project_tests"
-    TEST_PREFIX "gnc::"
+# 添加测试可执行文件
+add_executable(gnc_tests
+    test_config_manager.cpp
+    test_transform.cpp
 )
 
-# Create config manager test executable
-add_executable(test_config_manager test_config_manager.cpp)
+# 链接库
+target_link_libraries(gnc_tests
+    gtest_main
+    gnc_lib
+)
 
-# 链接 GNC 库
-target_link_libraries(test_config_manager PRIVATE gnc_lib)
+# 确保测试目标能访问到所有必要的头文件
+target_include_directories(gnc_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
 
-# 添加测试
-add_test(NAME config_manager_test COMMAND test_config_manager)
-set_tests_properties(config_manager_test PROPERTIES LABELS "config_tests")
+# 发现测试
+include(GoogleTest)
+gtest_discover_tests(gnc_tests)

@@ -137,8 +137,8 @@ message(STATUS "Found ${CMAKE_MATCH_COUNT} component headers")
 # 这种设计使得主程序和测试程序都可以链接同一个库，避免重复编译
 
 # 递归搜索所有 GNC 源文件（头文件和实现文件）
-# 包括 include/gnc/ 目录下的所有 .hpp 文件和 src/ 目录下的 .cpp 文件
-file(GLOB_RECURSE GNC_HEADERS "include/gnc/*.hpp")
+# 包括 include/ 目录下的所有 .hpp 文件和 src/ 目录下的 .cpp 文件
+file(GLOB_RECURSE GNC_HEADERS "include/*.hpp")
 file(GLOB_RECURSE GNC_SOURCES "src/*.cpp")
 
 # 合并头文件和源文件，包括自动生成的组件包含文件
@@ -155,7 +155,7 @@ add_library(gnc_lib STATIC ${GNC_ALL_SOURCES})
 target_include_directories(gnc_lib PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include     # GNC 自身的头文件目录
     ${CMAKE_CURRENT_BINARY_DIR}/generated   # 自动生成的文件目录
-    ${EIGEN_INCLUDE_DIR}                    # Eigen 数学库（仅头文件库）
+    ${eigen_SOURCE_DIR}                     # Eigen 数学库（仅头文件库）
     ${nlohmann_json_SOURCE_DIR}/include     # JSON 库（仅头文件库）
     ${spdlog_SOURCE_DIR}/include            # spdlog 日志库头文件
     ${yaml-cpp_SOURCE_DIR}/include          # yaml-cpp 库头文件
