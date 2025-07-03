@@ -30,7 +30,8 @@ TEST(ConfigManagerTest, LoggerConfig) {
     // 验证日志配置
     EXPECT_TRUE(logger_config.value("console_enabled", false)) << "Console logging should be enabled";
     EXPECT_TRUE(logger_config.value("file_enabled", false)) << "File logging should be enabled";
-    EXPECT_FALSE( logger_config.value("file_path", std::string("")).empty()) << "File path should not be empty";
+    const std::string file_path = logger_config.value("file_path", "");
+    EXPECT_FALSE(file_path.empty()) << "File path should not be empty";
 }
 
 // 测试组件配置获取
