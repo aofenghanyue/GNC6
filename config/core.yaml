@@ -3,19 +3,21 @@ core:
   # 仿真生命周期配置
   # 由TimingManagerComponent读取
   timing:
-    duration_s: 30.0  # 仿真总时长（秒）
+    duration_s: 10.0  # 仿真总时长（秒）
     time_step_s: 2.0 # 仿真步长（秒）
   # 飞行器配置
   vehicles:
     - id: 0  # 飞行器ID
       components:
         - TimingManager
+        - SimpleCoordinationInitializer
     - id: 1  # 飞行器ID
       components:
         # 按期望的逻辑顺序或任意顺序列出组件
         # StateManager会自动处理依赖关系和执行顺序
         # 支持两种格式：
         # 1. 简单字符串格式（向后兼容）
+        # 坐标转换系统初始化器（必须在其他组件之前）
         - SimpleAtmosphere
         - RigidBodyDynamics6DoF
         - SimpleAerodynamics
