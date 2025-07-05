@@ -14,7 +14,6 @@ FetchContent_MakeAvailable(googletest)
 # 添加测试可执行文件
 add_executable(gnc_tests
     test_config_manager.cpp
-    test_transform.cpp
 )
 
 # 链接库

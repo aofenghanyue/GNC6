@@ -118,7 +118,7 @@ public:
      * @brief 从欧拉角构造
      */
     Transform(double angle1, double angle2, double angle3, 
-             EulerSequence sequence = EulerSequence::XYZ) {
+             EulerSequence sequence = EulerSequence::ZYX) {
         quat_ = eulerToQuaternion(angle1, angle2, angle3, sequence).normalized();
     }
     
@@ -126,7 +126,7 @@ public:
      * @brief 从欧拉角向量构造
      */
     Transform(const Vector3& euler_angles, 
-             EulerSequence sequence = EulerSequence::XYZ) 
+             EulerSequence sequence = EulerSequence::ZYX) 
         : Transform(euler_angles.x(), euler_angles.y(), euler_angles.z(), sequence) {}
     
     // ==================== 静态工厂方法 ====================
@@ -139,61 +139,24 @@ public:
     }
     
     /**
-     * @brief 从四元数创建
-     */
-    static Transform FromQuaternion(const Quaternion& q) {
-        return Transform(q);
-    }
-    
-    /**
-     * @brief 从四元数分量创建
-     */
-    static Transform FromQuaternion(double w, double x, double y, double z) {
-        return Transform(w, x, y, z);
-    }
-    
-    /**
-     * @brief 从旋转矩阵创建
-     */
-    static Transform FromMatrix(const Matrix3& matrix) {
-        return Transform(matrix);
-    }
-    
-    /**
-     * @brief 从欧拉角创建
-     */
-    static Transform FromEuler(double angle1, double angle2, double angle3, 
-                              EulerSequence sequence = EulerSequence::XYZ) {
-        return Transform(angle1, angle2, angle3, sequence);
-    }
-    
-    /**
-     * @brief 从欧拉角向量创建
-     */
-    static Transform FromEuler(const Vector3& euler_angles, 
-                              EulerSequence sequence = EulerSequence::XYZ) {
-        return Transform(euler_angles, sequence);
-    }
-    
-    /**
      * @brief 绕X轴旋转
      */
     static Transform RotationX(double angle) {
-        return Transform(angle, 0.0, 0.0, EulerSequence::XYZ);
+        return Transform(std::cos(angle * 0.5), std::sin(angle * 0.5), 0.0, 0.0);
     }
     
     /**
      * @brief 绕Y轴旋转
      */
     static Transform RotationY(double angle) {
-        return Transform(0.0, angle, 0.0, EulerSequence::XYZ);
+        return Transform(std::cos(angle * 0.5), 0.0, std::sin(angle * 0.5), 0.0);
     }
     
     /**
      * @brief 绕Z轴旋转
      */
     static Transform RotationZ(double angle) {
-        return Transform(0.0, 0.0, angle, EulerSequence::XYZ);
+        return Transform(std::cos(angle * 0.5), 0.0, 0.0, std::sin(angle * 0.5));
     }
     
     /**
@@ -275,22 +238,22 @@ public:
     /**
      * @brief 转换为欧拉角
      */
-    Vector3 asEuler(EulerSequence sequence = EulerSequence::XYZ) const {
+    Vector3 asEuler(EulerSequence sequence = EulerSequence::ZYX) const {
         return quaternionToEuler(quat_, sequence);
     }
     
     /**
      * @brief 获取欧拉角的单个分量
      */
-    double getAngle1(EulerSequence sequence = EulerSequence::XYZ) const {
+    double getAngle1(EulerSequence sequence = EulerSequence::ZYX) const {
         return asEuler(sequence).x();
     }
     
-    double getAngle2(EulerSequence sequence = EulerSequence::XYZ) const {
+    double getAngle2(EulerSequence sequence = EulerSequence::ZYX) const {
         return asEuler(sequence).y();
     }
     
-    double getAngle3(EulerSequence sequence = EulerSequence::XYZ) const {
+    double getAngle3(EulerSequence sequence = EulerSequence::ZYX) const {
         return asEuler(sequence).z();
     }
     
@@ -340,22 +303,6 @@ public:
      */
     Transform slerp(const Transform& other, double t) const {
         return Transform(quat_.slerp(t, other.quat_));
-    }
-    
-    /**
-     * @brief 计算与另一个变换的角度差
-     */
-    double angleTo(const Transform& other) const {
-        double dot = std::abs(quat_.dot(other.quat_));
-        dot = std::min(1.0, dot);  // 防止数值误差
-        return 2.0 * std::acos(dot);
-    }
-    
-    /**
-     * @brief 近似相等比较
-     */
-    bool isApprox(const Transform& other, double tolerance = constants::EPSILON) const {
-        return angleTo(other) < tolerance;
     }
     
     /**
@@ -442,108 +389,6 @@ private:
         }
     }
 };
-
-// ==================== 便利函数 ====================
-
-/**
- * @brief 球面线性插值的全局函数
- */
-inline Transform Slerp(const Transform& from, const Transform& to, double t) {
-    return from.slerp(to, t);
-}
-
-/**
- * @brief 计算两个变换之间角度的全局函数
- */
-inline double AngleBetween(const Transform& t1, const Transform& t2) {
-    return t1.angleTo(t2);
-}
-
-/**
- * @brief 近似相等比较的全局函数
- */
-inline bool IsApprox(const Transform& t1, const Transform& t2, double tolerance = constants::EPSILON) {
-    return t1.isApprox(t2, tolerance);
-}
-
-/**
- * @brief 便利函数命名空间
- * 
- * 提供一些常用的便利函数，简化常见操作
- */
-namespace utils {
-
-/**
- * @brief 创建绕X轴的旋转变换
- * @param angle 旋转角度（弧度）
- * @return 旋转变换
- */
-inline Transform RotationX(double angle) {
-    return Transform::RotationX(angle);
-}
-
-/**
- * @brief 创建绕Y轴的旋转变换
- * @param angle 旋转角度（弧度）
- * @return 旋转变换
- */
-inline Transform RotationY(double angle) {
-    return Transform::RotationY(angle);
-}
-
-/**
- * @brief 创建绕Z轴的旋转变换
- * @param angle 旋转角度（弧度）
- * @return 旋转变换
- */
-inline Transform RotationZ(double angle) {
-    return Transform::RotationZ(angle);
-}
-
-/**
- * @brief 创建绕任意轴的旋转变换
- * @param axis 旋转轴（单位向量）
- * @param angle 旋转角度（弧度）
- * @return 旋转变换
- */
-inline Transform RotationAxis(const Vector3& axis, double angle) {
-    return Transform::RotationAxis(axis, angle);
-}
-
-/**
- * @brief 球面线性插值（SLERP）
- * @param from 起始变换
- * @param to 目标变换
- * @param t 插值参数 [0, 1]
- * @return 插值后的变换
- */
-inline Transform Slerp(const Transform& from, const Transform& to, double t) {
-    return from.slerp(to, t);
-}
-
-/**
- * @brief 计算两个变换之间的角度差
- * @param from 起始变换
- * @param to 目标变换
- * @return 角度差（弧度）
- */
-inline double AngleBetween(const Transform& from, const Transform& to) {
-    return from.angleTo(to);
-}
-
-/**
- * @brief 检查两个变换是否近似相等
- * @param a 第一个变换
- * @param b 第二个变换
- * @param tolerance 容差（弧度）
- * @return 是否近似相等
- */
-inline bool IsApprox(const Transform& a, const Transform& b, 
-                     double tolerance = constants::EPSILON) {
-    return a.isApprox(b, tolerance);
-}
-
-} // namespace utils
 
 } // namespace transform
 } // namespace math
