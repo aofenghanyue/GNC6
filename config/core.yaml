@@ -10,7 +10,8 @@ core:
     - id: 0  # 飞行器ID
       components:
         - TimingManager
-        - SimpleCoordinationInitializer
+        - type: CoordinationInitializer
+          name: CoordinationInitializer
     - id: 1  # 飞行器ID
       components:
         # 按期望的逻辑顺序或任意顺序列出组件

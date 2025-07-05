@@ -200,14 +200,16 @@ struct TransformPath {
  * @brief 坐标系注册表类
  * 
  * 管理坐标系之间的拓扑关系图，支持静态和动态变换的注册和查找。
+ * 现在直接实现ITransformProvider接口，无需中间层。
  * 
  * 主要功能：
  * - 注册静态和动态变换关系
  * - 查找坐标系间的变换路径
  * - 支持逆变换的自动处理
+ * - 提供变换服务和缓存机制
  * - 提供调试和诊断信息
  */
-class CoordinateSystemRegistry {
+class CoordinateSystemRegistry : public ITransformProvider {
 public:
     /**
      * @brief 构造函数
@@ -224,6 +226,65 @@ public:
     CoordinateSystemRegistry& operator=(const CoordinateSystemRegistry&) = delete;
     CoordinateSystemRegistry(CoordinateSystemRegistry&&) = delete;
     CoordinateSystemRegistry& operator=(CoordinateSystemRegistry&&) = delete;
+
+    // ==================== ITransformProvider接口实现 ====================
+
+    /**
+     * @brief 获取从源坐标系到目标坐标系的变换
+     */
+    Transform getTransform(
+        const FrameIdentifier& from_frame,
+        const FrameIdentifier& to_frame) const override {
+        
+        // 相同坐标系直接返回
+        if (validation::areFramesEqual(from_frame, to_frame)) {
+            return Transform::Identity();
+        }
+
+        // 检查缓存
+        std::lock_guard<std::mutex> lock(cache_mutex_);
+        auto cache_key = std::make_pair(from_frame, to_frame);
+        auto it = transform_cache_.find(cache_key);
+        if (it != transform_cache_.end()) {
+            return it->second;
+        }
+
+        // 使用图论算法查找路径
+        auto path = findTransformPath(from_frame, to_frame);
+        if (!path) {
+            throw TransformNotFoundError(from_frame, to_frame, "No transformation path found");
+        }
+
+        // 计算路径总变换
+        auto result = path->computeTransform();
+
+        // 缓存结果
+        transform_cache_[cache_key] = result;
+        return result;
+    }
+
+    bool hasTransform(const FrameIdentifier& from_frame,
+                     const FrameIdentifier& to_frame) const override {
+        return hasTransformPath(from_frame, to_frame);
+    }
+
+    FrameIdentifierSet getSupportedFrames() const override {
+        return getRegisteredFrames();
+    }
+
+    bool isFrameSupported(const FrameIdentifier& frame_id) const override {
+        auto frames = getSupportedFrames();
+        return frames.find(frame_id) != frames.end();
+    }
+
+    void clearCache() const override {
+        std::lock_guard<std::mutex> lock(cache_mutex_);
+        transform_cache_.clear();
+    }
+
+    std::string getProviderInfo() const override {
+        return "Coordinate System Registry with " + std::to_string(getFrameCount()) + " frames";
+    }
 
     // ==================== 变换注册接口 ====================
 
@@ -514,6 +575,12 @@ public:
 private:
     /// 邻接表表示的有向图
     std::unordered_map<FrameIdentifier, std::vector<TransformEdge>> adjacency_list_;
+    
+    /// 变换缓存（线程安全）
+    mutable std::unordered_map<std::pair<FrameIdentifier, FrameIdentifier>, 
+                              Transform,
+                              PairHash> transform_cache_;
+    mutable std::mutex cache_mutex_;
 
     /**
      * @brief 添加边到图中

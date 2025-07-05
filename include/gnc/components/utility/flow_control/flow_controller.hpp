@@ -77,15 +77,23 @@ public:
      * @param id 飞行器ID
      * @param name 组件名称
      * @param initial_state 初始状态名称
+     * @param state_access 状态访问接口（从父组件传入）
      */
-    FlowController(states::VehicleId id, const std::string& instanceName, const StateType& initial_state)
-        : states::ComponentBase(id, "FlowController", instanceName), current_state_(initial_state), initial_state_(initial_state) {
+    FlowController(states::VehicleId id, const std::string& instanceName, const StateType& initial_state, states::IStateAccess* state_access = nullptr)
+        : states::ComponentBase(id, "FlowController", instanceName), current_state_(initial_state), initial_state_(initial_state), stateAccess_(state_access) {
+        
+        // 如果提供了状态访问接口，则设置到基类
+        if (state_access) {
+            setStateAccess(state_access);
+        }
         
         // 声明输出状态
         declareOutput<StateType>("current_state");  // 当前状态
         declareOutput<StateType>("previous_state"); // 前一个状态
         declareOutput<double>("time_in_state");     // 在当前状态停留的时间
         declareOutput<bool>("state_changed");       // 本次更新是否发生了状态变化
+
+        LOG_COMPONENT_DEBUG("Created FlowController for vehicle {} with instance name {}", id, instanceName.c_str());
     }
 
     /**
@@ -398,12 +406,28 @@ protected:
      * @brief 组件更新实现
      */
     void updateImpl() override {
+        // 确保组件已初始化
+        if (!isInitialized_) {
+            initialize();
+        }
+
         // 重置状态变化标志
         state_changed_ = false;
         
         // 增加当前状态停留时间
-        // TODO 实现全局的时间组件
-        time_in_state_ += 0.01; // 假设更新频率为100Hz，可以通过配置调整
+        if (stateAccess_) {
+            try {
+                // 直接通过传入的StateAccess接口获取状态
+                time_in_state_ += stateAccess_->getState<double>({{globalId, "TimingManager"}, "timing_delta_s"});
+            } catch (const std::exception& e) {
+                // 如果无法获取时间步长，使用默认值
+                time_in_state_ += 0.1;
+                LOG_COMPONENT_WARN("Failed to get timing delta, using default value 0.1: {}", e.what());
+            }
+        } else {
+            time_in_state_ += 0.1; // 默认步进值
+            LOG_COMPONENT_WARN("State access not available, using default timing delta 0.1");
+        }
         
         // 检查所有可能的转换
         for (const auto& transition : transitions_) {
@@ -475,6 +499,9 @@ protected:
         }
         
         LOG_COMPONENT_INFO("Flow controller initialized with state: {}", initial_state_.c_str());
+        
+        // 设置初始化完成标志
+        isInitialized_ = true;
     }
 
 private:
@@ -516,6 +543,8 @@ private:
     }
 
 private:
+    bool isInitialized_{false};
+
     StateType current_state_;     ///< 当前状态
     StateType previous_state_;    ///< 前一个状态
     StateType initial_state_;     ///< 初始状态
@@ -531,6 +560,8 @@ private:
     // 状态转换历史记录
     std::vector<StateTransitionRecord> state_history_;
     size_t max_history_size_ = 100;  ///< 最大历史记录大小
+    
+    states::IStateAccess* stateAccess_{nullptr};  ///< 状态访问接口（从父组件传入）
 };
 // 作为工具，不进行注册，由使用的组件手动注册
 } // namespace gnc::components::utility

@@ -2,7 +2,15 @@
  * @file simple_coordination_initializer.hpp
  * @brief 简化的坐标转换系统初始化器
  * 
- * 这是一个简化版本的坐标转换系统初始化器，专注于核心功能
+ * 这是一个优化后的坐标转换系统初始化器，主要功能：
+ * - 初始化全局坐标转换系统
+ * - 集中管理所有变换关系的注册
+ * - 提供简化的用户扩展接口
+ * 
+ * 优化特点：
+ * - 无需复杂的getter配置
+ * - 变换关系配置集中化
+ * - 用户只需继承并重写registerCustomTransforms()方法
  */
 
 #pragma once
@@ -18,9 +26,17 @@ namespace components {
 namespace utility {
 
 /**
- * @brief 简化的坐标转换系统初始化器组件
+ * @brief 优化后的坐标转换系统初始化器组件
  * 
- * 这个组件的唯一职责是初始化全局的坐标转换系统
+ * 主要职责：
+ * - 初始化全局的坐标转换系统
+ * - 集中管理所有变换关系的注册
+ * - 为用户提供简化的扩展接口
+ * 
+ * 使用方式：
+ * 1. 继承SimpleCoordinationInitializer
+ * 2. 重写registerCustomTransforms()方法
+ * 3. 使用addDynamicTransform()和addStaticTransform()添加变换
  */
 class SimpleCoordinationInitializer : public states::ComponentBase {
 public:
@@ -47,23 +63,12 @@ public:
      */
     void initialize() override {
         try {
-            // 创建状态获取函数
-            auto vector_getter = [this](const StateId& state_id) -> const std::vector<double>& {
-                return this->getStateForCoordination<std::vector<double>>(state_id);
-            };
-
-            // 可选：创建其他类型的获取器
-            auto vector3d_getter = [this](const StateId& state_id) -> const Vector3d& {
-                return this->getStateForCoordination<Vector3d>(state_id);
-            };
-
-            auto quaternion_getter = [this](const StateId& state_id) -> const Quaterniond& {
-                return this->getStateForCoordination<Quaterniond>(state_id);
-            };
-
-            // 初始化全局变换管理器
-            gnc::coordination::SimpleTransformManager::initialize(
-                vector_getter, vector3d_getter, quaternion_getter);
+            // 1. 简化：只需要无参数初始化
+            gnc::coordination::SimpleTransformManager::initialize();
+            
+            // 2. 注册默认变换关系
+            registerDefaultTransforms();
+            registerCustomTransforms();
             
             LOG_INFO("[SimpleCoordinationInitializer] Coordination system initialized");
             initialization_successful_ = true;
@@ -111,6 +116,61 @@ public:
 
 protected:
     /**
+     * @brief 注册默认变换关系
+     */
+    virtual void registerDefaultTransforms() {
+        auto& registry = gnc::coordination::SimpleTransformManager::getInstance();
+        
+        // 惯性坐标系到载体坐标系的动态变换
+        registry.addDynamicTransform("INERTIAL", "BODY",
+            [this]() -> Transform {
+                try {
+                    // 直接使用组件的状态访问能力
+                    auto attitude = this->getStateForCoordination<Quaterniond>(
+                        StateId{{1, "Dynamics"}, "attitude_truth_quat"});
+                    return Transform(attitude).inverse(); // 从惯性到载体
+                } catch (...) {
+                    return Transform::Identity(); // 获取失败时返回单位变换
+                }
+            }, "Inertial to Body transformation");
+    }
+    
+    /**
+     * @brief 注册用户自定义变换关系
+     * 用户可以重写此方法添加自定义变换
+     */
+    virtual void registerCustomTransforms() {
+        // 空实现，用户可以重写
+    }
+    
+    /**
+     * @brief 便利方法：注册动态变换（简化版）
+     * 
+     * @param from_frame 源坐标系
+     * @param to_frame 目标坐标系
+     * @param transform_func 变换计算函数（可以读取任意数量的状态）
+     * @param description 描述
+     */
+    void addDynamicTransform(const std::string& from_frame,
+                            const std::string& to_frame,
+                            std::function<Transform()> transform_func,
+                            const std::string& description = "") {
+        auto& registry = gnc::coordination::SimpleTransformManager::getInstance();
+        registry.addDynamicTransform(from_frame, to_frame, std::move(transform_func), description);
+    }
+    
+    /**
+     * @brief 便利方法：注册静态变换
+     */
+    void addStaticTransform(const std::string& from_frame,
+                           const std::string& to_frame,
+                           const Transform& transform,
+                           const std::string& description = "") {
+        auto& registry = gnc::coordination::SimpleTransformManager::getInstance();
+        registry.addStaticTransform(from_frame, to_frame, transform, description);
+    }
+
+    /**
      * @brief 组件更新实现
      */
     void updateImpl() override {
@@ -145,3 +205,15 @@ static gnc::ComponentRegistrar<SimpleCoordinationInitializer>
  * @brief 便利宏：检查全局提供者是否可用
  */
 #define IS_GLOBAL_PROVIDER_AVAILABLE() gnc::components::utility::SimpleCoordinationInitializer::isGlobalProviderAvailable()
+
+/**
+ * @brief 便利宏：添加动态变换（用于用户自定义初始化器中）
+ */
+#define ADD_DYNAMIC_TRANSFORM(from, to, transform_func, desc) \
+    addDynamicTransform(from, to, transform_func, desc)
+
+/**
+ * @brief 便利宏：添加静态变换（用于用户自定义初始化器中）
+ */
+#define ADD_STATIC_TRANSFORM(from, to, transform, desc) \
+    addStaticTransform(from, to, transform, desc)

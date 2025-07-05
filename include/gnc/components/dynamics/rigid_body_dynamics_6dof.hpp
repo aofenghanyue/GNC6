@@ -2,6 +2,7 @@
 #include "gnc/core/component_base.hpp"
 #include "gnc/core/component_registrar.hpp"
 #include "gnc/coordination/coordination.hpp"
+#include "../custom/coordination_initializer.hpp"
 #include <vector>
 #include "../utility/simple_logger.hpp"
 #include "math/math.hpp"
@@ -15,7 +16,7 @@ public:
         : states::ComponentBase(id, "Dynamics", instanceName) {
         // 全局依赖
         declareInput<double>("timing_current_s", {{globalId, "TimingManager"}, "timing_current_s"});
-        declareInput<bool>("coordination_initialized",{{globalId,"SimpleCoordinationInitializer"}, "coordination_initialized"});
+        declareInput<bool>("coordination_initialized",{{globalId,"CoordinationInitializer"}, "coordination_initialized"});
 
         // 依赖的本来是经过适配器拉偏后的气动力，但是这里先不考虑disturb模块
         declareInput<Vector3d>("aero_force_truth_N", { {id, "Aerodynamics"}, "aero_force_truth_N" });

@@ -60,14 +60,14 @@ TimingManagerComponent::TimingManagerComponent(VehicleId vehicleId, const std::s
     : ComponentBase(vehicleId, "TimingManager", instanceName) {
     
     // Declare the states this component will provide to the system
-    declareOutput<double>("timing_current_s");
-    declareOutput<double>("timing_delta_s");
-    declareOutput<uint64_t>("timing_frame_count");
-    declareOutput<bool>("timing_should_run");
+    declareOutput<double>("timing_current_s",0);
+    declareOutput<double>("timing_delta_s",0);
+    declareOutput<uint64_t>("timing_frame_count",0);
+    declareOutput<bool>("timing_should_run",10);
 }
 
 void TimingManagerComponent::initialize() {
-    LOG_INFO("Initializing TimingManager...");
+    LOG_COMPONENT_DEBUG("Initializing TimingManager...");
 
     try {
         auto& config_manager = ConfigManager::getInstance();
@@ -79,12 +79,12 @@ void TimingManagerComponent::initialize() {
             const auto& sim_config = core_config["core"]["timing"];
             duration_s_ = sim_config.value("duration_s", 10.0);
             time_step_s_ = sim_config.value("time_step_s", 1.0);
-            LOG_INFO("Simulation configured for a duration of {}s with a {}s time step.", duration_s_, time_step_s_);
+            LOG_COMPONENT_INFO("Simulation configured for a duration of {}s with a {}s time step.", duration_s_, time_step_s_);
         } else {
-            LOG_WARN("Config key 'core.timing' not found. Using default values.");
+            LOG_COMPONENT_WARN("Config key 'core.timing' not found. Using default values.");
         }
     } catch (const std::exception& e) {
-        LOG_WARN("Could not find simulation settings in core.yaml. Using default values. Details: {}", e.what());
+        LOG_COMPONENT_WARN("Could not find simulation settings in core.yaml. Using default values. Details: {}", e.what());
     }
 
     // Set the initial state values
@@ -102,7 +102,7 @@ void TimingManagerComponent::updateImpl() {
     // Check if the simulation duration has been reached
     if (current_time_s_ >= duration_s_) {
         should_run_ = false;
-        LOG_INFO("Simulation duration of {}s reached. Halting simulation.", duration_s_);
+        LOG_COMPONENT_INFO("Simulation duration of {}s reached. Halting simulation.", duration_s_);
     }
 
     // Update the states for other components to use in the next frame

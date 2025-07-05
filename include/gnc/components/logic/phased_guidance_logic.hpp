@@ -50,8 +50,7 @@ public:
         declareOutput<std::vector<double>>("guidance_command"); // 导引量输出
         declareOutput<double>("desired_throttle_level");    // 油门指令
         
-        // 创建并配置流程控制器
-        initFlowController();
+        // 注意：不在构造函数中初始化FlowController，而是在initialize()中进行
     }
 
     /**
@@ -92,6 +91,21 @@ public:
     }
 
 protected:
+    /**
+     * @brief 初始化组件
+     * 
+     * @details 在StateManager注册组件后调用，此时可以访问状态管理器
+     */
+    void initialize() override {
+        // 调用基类的初始化
+        ComponentBase::initialize();
+        
+        // 现在可以安全地初始化FlowController，因为组件已经被注册到StateManager
+        initFlowController();
+        
+        LOG_COMPONENT_INFO("PhasedGuidanceLogic initialized with FlowController");
+    }
+
     /**
      * @brief 组件更新实现
      */
@@ -135,9 +149,9 @@ private:
      * @brief 初始化流程控制器
      */
     void initFlowController() {
-        // 创建流程控制器
+        // 创建流程控制器，传入状态访问接口
         flow_controller_ = std::make_unique<utility::FlowController>(
-            getVehicleId(), getName() + "_FlowController", "initial");
+            getVehicleId(), getName() + "_FlowController", "initial", getStateAccess());
         
         // 添加状态
         flow_controller_->addState("initial", "Initial guidance phase")

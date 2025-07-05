@@ -97,3 +97,15 @@ inline bool isValidFrameId(const std::string& frame_id) {
 
 } // namespace coordination
 } // namespace gnc
+
+
+/**
+ * @brief 配对哈希函数
+ */
+struct PairHash {
+    std::size_t operator()(const std::pair<gnc::coordination::FrameIdentifier, gnc::coordination::FrameIdentifier>& pair) const {
+        auto h1 = std::hash<std::string>{}(pair.first);
+        auto h2 = std::hash<std::string>{}(pair.second);
+        return h1 ^ (h2 << 1);
+    }
+};

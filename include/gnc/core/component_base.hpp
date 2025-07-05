@@ -169,6 +169,20 @@ public:
         return ComponentId{vehicleId_, getName()};
     }
 
+    /**
+     * @brief 获取状态访问接口
+     * 
+     * @return IStateAccess* 状态访问接口指针
+     * 
+     * @details 此方法用于：
+     * 1. 将状态访问能力传递给工具组件
+     * 2. 允许非注册组件访问状态管理器
+     * 3. 支持组件内部的复杂状态管理
+     */
+    IStateAccess* getStateAccess() const {
+        return stateAccess_;
+    }
+
 protected:
     /**
      * @brief 组件更新实现 (纯虚函数)
@@ -319,10 +333,12 @@ protected:
 
     friend class gnc::StateManager;  // 允许 StateManager 访问 protected 成员
 
-private:
+protected:
     void setStateAccess(IStateAccess* access) {
         stateAccess_ = access;
     }
+
+private:
 
     VehicleId vehicleId_;
     std::string name_;
