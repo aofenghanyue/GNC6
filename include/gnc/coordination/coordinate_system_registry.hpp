@@ -32,7 +32,7 @@
 
 #include "frame_identifier.hpp"
 #include "itransform_provider.hpp"
-#include "../../math/transform/transform.hpp"
+#include "../../math/math.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -63,10 +63,10 @@ struct TransformEdge {
     TransformEdgeType edge_type;     ///< 边的类型
     
     /// 静态变换数据
-    gnc::math::transform::Transform static_transform;
+    Transform static_transform;
     
     /// 动态变换函数
-    std::function<gnc::math::transform::Transform()> dynamic_transform_func;
+    std::function<Transform()> dynamic_transform_func;
     
     std::string description;         ///< 变换描述
 
@@ -75,7 +75,7 @@ struct TransformEdge {
      */
     TransformEdge() 
         : from_frame(""), to_frame(""), edge_type(TransformEdgeType::STATIC),
-          static_transform(gnc::math::transform::Transform::Identity()),
+          static_transform(Transform::Identity()),
           dynamic_transform_func(nullptr), description("") {}
 
     /**
@@ -83,7 +83,7 @@ struct TransformEdge {
      */
     TransformEdge(const FrameIdentifier& from, 
                  const FrameIdentifier& to,
-                 const gnc::math::transform::Transform& transform,
+                 const Transform& transform,
                  const std::string& desc = "")
         : from_frame(from), to_frame(to), edge_type(TransformEdgeType::STATIC),
           static_transform(transform), description(desc) {}
@@ -93,16 +93,16 @@ struct TransformEdge {
      */
     TransformEdge(const FrameIdentifier& from,
                  const FrameIdentifier& to,
-                 std::function<gnc::math::transform::Transform()> func,
+                 std::function<Transform()> func,
                  const std::string& desc = "")
         : from_frame(from), to_frame(to), edge_type(TransformEdgeType::DYNAMIC),
-          static_transform(gnc::math::transform::Transform::Identity()),
+          static_transform(Transform::Identity()),
           dynamic_transform_func(std::move(func)), description(desc) {}
 
     /**
      * @brief 获取当前变换
      */
-    gnc::math::transform::Transform getTransform() const {
+    Transform getTransform() const {
         if (edge_type == TransformEdgeType::STATIC) {
             return static_transform;
         } else {
@@ -137,8 +137,8 @@ struct TransformPath {
     /**
      * @brief 计算路径的总变换
      */
-    gnc::math::transform::Transform computeTransform() const {
-        auto result = gnc::math::transform::Transform::Identity();
+    Transform computeTransform() const {
+        auto result = Transform::Identity();
         
         for (const auto& edge : edges) {
             result = result * edge.getTransform();
@@ -241,7 +241,7 @@ public:
      */
     bool addStaticTransform(const FrameIdentifier& from_frame,
                            const FrameIdentifier& to_frame,
-                           const gnc::math::transform::Transform& transform,
+                           const Transform& transform,
                            const std::string& description = "",
                            bool bidirectional = true) {
         
@@ -278,7 +278,7 @@ public:
      */
     bool addDynamicTransform(const FrameIdentifier& from_frame,
                             const FrameIdentifier& to_frame,
-                            std::function<gnc::math::transform::Transform()> transform_func,
+                            std::function<Transform()> transform_func,
                             const std::string& description = "",
                             bool bidirectional = true) {
         

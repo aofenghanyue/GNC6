@@ -26,9 +26,9 @@ public:
         : states::ComponentBase(id, "SimpleGuidance", instanceName) {
         
         // 声明输入
-        declareInput<std::vector<double>>("position_inertial", {{id, "Navigation"}, "position_estimate"});
-        declareInput<std::vector<double>>("velocity_inertial", {{id, "Navigation"}, "velocity_estimate"});
-        declareInput<std::vector<double>>("target_position", {{id, "TargetTracker"}, "target_position"}, false);
+        declareInput<Vector3d>("position_inertial", {{id, "Navigation"}, "position_estimate"});
+        declareInput<Vector3d>("velocity_inertial", {{id, "Navigation"}, "velocity_estimate"});
+        declareInput<Vector3d>("target_position", {{id, "TargetTracker"}, "target_position"}, false);
         
         // 声明输出
         declareOutput<std::vector<double>>("guidance_command_inertial");
@@ -45,8 +45,8 @@ protected:
         using namespace gnc::coordination;
         
         // 获取输入状态
-        auto pos_inertial = getState<std::vector<double>>("position_inertial");
-        auto vel_inertial = getState<std::vector<double>>("velocity_inertial");
+        auto pos_inertial = getState<Vector3d>("position_inertial");
+        auto vel_inertial = getState<Vector3d>("velocity_inertial");
         
         // ===== 超简化坐标转换示例 =====
         
@@ -66,10 +66,10 @@ protected:
         
         // 计算到目标的距离（如果有目标）
         try {
-            auto target_pos = getState<std::vector<double>>("target_position");
+            auto target_pos = getState<Vector3d>("target_position");
             
             // 计算相对位置并转换到载体系
-            std::vector<double> rel_pos_inertial = {
+            Vector3d rel_pos_inertial = {
                 target_pos[0] - pos_inertial[0],
                 target_pos[1] - pos_inertial[1],
                 target_pos[2] - pos_inertial[2]
@@ -96,14 +96,14 @@ private:
     /**
      * @brief 在载体系中计算制导指令
      */
-    std::vector<double> computeBodyGuidanceCommand(const std::vector<double>& pos_body,
-                                                   const std::vector<double>& vel_body) {
+    std::vector<double> computeBodyGuidanceCommand(const Vector3d& pos_body,
+                                                   const Vector3d& vel_body) {
         // 简单的比例导引示例
         // 在载体系中，目标通常在前方（正X方向）
-        std::vector<double> desired_vel_body = {100.0, 0.0, 0.0}; // 期望速度
+        Vector3d desired_vel_body = {100.0, 0.0, 0.0}; // 期望速度
         
         // 速度误差
-        std::vector<double> vel_error = {
+        Vector3d vel_error = {
             desired_vel_body[0] - vel_body[0],
             desired_vel_body[1] - vel_body[1],
             desired_vel_body[2] - vel_body[2]

@@ -12,7 +12,7 @@ public:
     IdealIMUSensor(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "IMU_Sensor", instanceName) {
         // declareInput<std::vector<double>>("velocity_truth", {{id, "Dynamics"}, "velocity_truth_mps"}, false);
-        declareOutput<std::vector<double>>("measured_acceleration");
+        declareOutput<Vector3d>("measured_acceleration");
     }
 
     std::string getComponentType() const override {
@@ -20,9 +20,9 @@ public:
     }
 protected:
     void updateImpl() override {
-        auto vel_truth = getState<std::vector<double>>({{getVehicleId(), "Dynamics"}, "velocity_truth_mps"});
+        auto vel_truth = getState<Vector3d>({{getVehicleId(), "Dynamics"}, "velocity_truth_mps"});
         // 伪实现：理想传感器，直接输出一个常量
-        std::vector<double> accel_measured = {0.1, 0.0, -9.8};
+        Vector3d accel_measured = {0.1, 0.0, -9.8};
         setState("measured_acceleration", accel_measured);
         LOG_COMPONENT_DEBUG("Output measured acceleration: [{}, {}, {}]", 
                   accel_measured[0], accel_measured[1], accel_measured[2]);

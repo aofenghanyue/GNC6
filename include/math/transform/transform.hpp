@@ -39,11 +39,34 @@
  */
 
 // 基础类型和常量
-#include "types.hpp"
+#include <Eigen/Dense>
 
 namespace gnc {
 namespace math {
 namespace transform {
+
+// 内部使用的类型别名
+using Vector3 = Eigen::Vector3d;
+using Vector4 = Eigen::Vector4d;
+using Matrix3 = Eigen::Matrix3d;
+using Quaternion = Eigen::Quaterniond;
+
+// 内部使用的常量
+namespace constants {
+    constexpr double EPSILON = 1e-9;
+    constexpr double PI = 3.14159265358979323846;
+    constexpr double TWO_PI = 2.0 * PI;
+    constexpr double HALF_PI = PI / 2.0;
+    constexpr double DEG_TO_RAD = PI / 180.0;
+    constexpr double RAD_TO_DEG = 180.0 / PI;
+    constexpr double ROTATION_TOLERANCE = 1e-6;
+    constexpr double QUATERNION_TOLERANCE = 1e-9;
+}
+
+// 欧拉角旋转序列（内部使用）
+enum class EulerSequence {
+    ZYX, XYZ, YZX, ZXY, XZY, YXZ
+};
 
 /**
  * @brief 统一的变换类
@@ -357,6 +380,13 @@ private:
         
         switch (sequence) {
             case EulerSequence::XYZ:
+            /*
+                数学表达式（XYZ=a1,a2,a3）:
+                w = cos(a1/2) cos(a2/2) cos(a3/2) - sin(a1/2) sin(a2/2) sin(a3/2),
+                x = sin(a1/2) cos(a2/2) cos(a3/2) + cos(a1/2) sin(a2/2) sin(a3/2), 
+                y = cos(a1/2) sin(a2/2) cos(a3/2) - sin(a1/2) cos(a2/2) sin(a3/2), 
+                z = cos(a1/2) cos(a2/2) sin(a3/2) + sin(a1/2) sin(a2/2) cos(a3/2)
+            */
                 return Quaternion(
                     c1*c2*c3 - s1*s2*s3,
                     s1*c2*c3 + c1*s2*s3,
@@ -364,11 +394,19 @@ private:
                     c1*c2*s3 + s1*s2*c3
                 );
             case EulerSequence::ZYX:
+            /*
+                数学表达式(ZYX=phi, psi, gamma)：
+                w = cos(\phi/2) cos(\psi/2) cos(\gamma/2) + sin(\phi/2) sin(\psi/2) sin(\gamma/2);
+                x = cos(\phi/2) cos(\psi/2) sin(\gamma/2) - sin(\phi/2) sin(\psi/2) cos(\gamma/2);
+                y = cos(\phi/2) sin(\psi/2) cos(\gamma/2) + sin(\phi/2) cos(\psi/2) sin(\gamma/2);
+                z = sin(\phi/2) cos(\psi/2) cos(\gamma/2) - cos(\phi/2) sin(\psi/2) sin(\gamma/2);
+
+            */
                 return Quaternion(
                     c1*c2*c3 + s1*s2*s3,
-                    s1*c2*c3 - c1*s2*s3,
+                    c1*c2*s3 - s1*s2*c3,
                     c1*s2*c3 + s1*c2*s3,
-                    c1*c2*s3 - s1*s2*c3
+                    s1*c2*c3 - c1*s2*s3
                 );
             // 可以根据需要添加更多序列
             default:

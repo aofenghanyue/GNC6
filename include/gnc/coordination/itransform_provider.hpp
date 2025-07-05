@@ -25,7 +25,7 @@
 #pragma once
 
 #include "frame_identifier.hpp"
-#include "../../math/transform/transform.hpp"
+#include "../../math/math.hpp"
 #include <stdexcept>
 
 namespace gnc {
@@ -111,7 +111,7 @@ public:
      * @note 如果from_frame == to_frame，应返回单位变换
      * @note 实现应该是线程安全的（如果需要多线程支持）
      */
-    virtual gnc::math::transform::Transform getTransform(
+    virtual Transform getTransform(
         const FrameIdentifier& from_frame,
         const FrameIdentifier& to_frame) const = 0;
 
@@ -207,12 +207,12 @@ protected:
      * @param to_frame 目标坐标系
      * @return 如果相同返回单位变换，否则返回空的optional
      */
-    std::optional<gnc::math::transform::Transform> handleIdentityTransform(
+    std::optional<Transform> handleIdentityTransform(
         const FrameIdentifier& from_frame,
         const FrameIdentifier& to_frame) const {
         
         if (validation::areFramesEqual(from_frame, to_frame)) {
-            return gnc::math::transform::Transform::Identity();
+            return Transform::Identity();
         }
         return std::nullopt;
     }

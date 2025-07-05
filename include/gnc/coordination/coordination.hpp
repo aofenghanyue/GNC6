@@ -15,8 +15,8 @@ namespace gnc {
 namespace coordination {
 
 // 核心类型别名
-using Vector3d = gnc::math::tensor::Vector3d;
-using Transform = gnc::math::transform::Transform;
+using Vector3d = ::Vector3d;
+using Transform = ::Transform;
 
 // 向后兼容的全局provider访问
 inline ITransformProvider& getGlobalProvider() {

@@ -11,9 +11,9 @@ class PerfectNavigation : public states::ComponentBase {
 public:
     PerfectNavigation(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "Navigation", instanceName) {
-        // declareInput<std::vector<double>>("pos_truth", {{id, "Dynamics"}, "position_truth_m"}, false);
-        declareInput<std::vector<double>>("pos_measured", {{id, "IMU_Sensor"}, "measured_acceleration"});
-        declareOutput<std::vector<double>>("pva_estimate");
+        // declareInput<Vector3d>("pos_truth", {{id, "Dynamics"}, "position_truth_m"}, false);
+        declareInput<Vector3d>("pos_measured", {{id, "IMU_Sensor"}, "measured_acceleration"});
+        declareOutput<Vector3d>("pva_estimate");
     }
 
     std::string getComponentType() const override {
@@ -21,8 +21,8 @@ public:
     }
 protected:
     void updateImpl() override {
-        auto pos_truth = getState<std::vector<double>>({{getVehicleId(), "Dynamics"}, "position_truth_m"});
-        setState("pva_estimate", pos_truth); // 伪实现
+        auto pos_measured = getState<Vector3d>({{getVehicleId(), "IMU_Sensor"}, "measured_acceleration"});
+        setState("pva_estimate", pos_measured); // 伪实现
         LOG_COMPONENT_DEBUG("Generated perfect PVA estimate");
     }
 };

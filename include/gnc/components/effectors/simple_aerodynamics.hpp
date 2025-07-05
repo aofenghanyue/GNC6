@@ -13,9 +13,9 @@ public:
         : states::ComponentBase(id, "Aerodynamics", instanceName) {
         // 依赖大气密度和飞行器速度（来自理想传感器）
         declareInput<double>("air_density_kg_m3", { {id, "Atmosphere"}, "air_density_kg_m3" });
-        // declareInput<std::vector<double>>("velocity_truth_mps", { {id, "Dynamics"}, "velocity_truth_mps" }, false);
+        // declareInput<Vector3d>("velocity_truth_mps", { {id, "Dynamics"}, "velocity_truth_mps" }, false);
         
-        declareOutput<std::vector<double>>("aero_force_truth_N");
+        declareOutput<Vector3d>("aero_force_truth_N");
     }
 
     std::string getComponentType() const override {
@@ -24,7 +24,7 @@ public:
 protected:
     void updateImpl() override {
         auto density = getState<double>({ {getVehicleId(), "Atmosphere"}, "air_density_kg_m3" });
-        auto velocity = getState<std::vector<double>>({ {getVehicleId(), "Dynamics"}, "velocity_truth_mps" });
+        auto velocity = getState<Vector3d>({ {getVehicleId(), "Dynamics"}, "velocity_truth_mps" });
         
         // 伪实现：简单阻力模型
         double speed_sq = velocity[0]*velocity[0] + velocity[1]*velocity[1] + velocity[2]*velocity[2];

@@ -10,6 +10,7 @@
 #include "gnc/coordination/coordination.hpp"
 #include "../../core/component_base.hpp"
 #include "../../core/component_registrar.hpp"
+#include "../../core/state_access.hpp"
 #include "../utility/simple_logger.hpp"
 
 namespace gnc {
@@ -46,19 +47,23 @@ public:
      */
     void initialize() override {
         try {
-            // 创建状态获取函数，通过组件的stateAccess_访问状态
-            auto state_getter = [this](const StateId& state_id) -> std::any {
-                try {
-                    // 通过组件的getState方法访问状态
-                    return this->getState<std::vector<double>>(state_id);
-                } catch (...) {
-                    // 如果获取失败，返回空值
-                    return std::any();
-                }
+            // 创建状态获取函数
+            auto vector_getter = [this](const StateId& state_id) -> const std::vector<double>& {
+                return this->getStateForCoordination<std::vector<double>>(state_id);
+            };
+
+            // 可选：创建其他类型的获取器
+            auto vector3d_getter = [this](const StateId& state_id) -> const Vector3d& {
+                return this->getStateForCoordination<Vector3d>(state_id);
+            };
+
+            auto quaternion_getter = [this](const StateId& state_id) -> const Quaterniond& {
+                return this->getStateForCoordination<Quaterniond>(state_id);
             };
 
             // 初始化全局变换管理器
-            gnc::coordination::SimpleTransformManager::initialize(state_getter);
+            gnc::coordination::SimpleTransformManager::initialize(
+                vector_getter, vector3d_getter, quaternion_getter);
             
             LOG_INFO("[SimpleCoordinationInitializer] Coordination system initialized");
             initialization_successful_ = true;
@@ -91,6 +96,17 @@ public:
      */
     static bool isGlobalProviderAvailable() {
         return gnc::coordination::SimpleTransformManager::isInitialized();
+    }
+
+    /**
+     * @brief 公共的状态获取方法，供坐标转换系统使用
+     * @tparam T 状态数据类型
+     * @param state_id 状态标识符
+     * @return 状态值的常量引用
+     */
+    template<typename T>
+    const T& getStateForCoordination(const StateId& state_id) const {
+        return getState<T>(state_id);
     }
 
 protected:

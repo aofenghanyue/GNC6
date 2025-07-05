@@ -11,9 +11,10 @@
 #include "frame_identifier.hpp"
 #include "itransform_provider.hpp"
 #include "coordinate_system_registry.hpp"
-#include "../../math/tensor/tensor.hpp"
-#include "../../math/transform/transform.hpp"
+#include "../../math/math.hpp"
 #include "../core/state_manager.hpp"
+#include "../core/state_access.hpp"
+#include "gnc/components/utility/simple_logger.hpp"
 
 #include <functional>
 #include <memory>
@@ -37,32 +38,40 @@ namespace coordination {
 /**
  * @brief 状态获取函数类型
  */
-using StateGetterFunc = std::function<std::any(const StateId& state_id)>;
+template<typename T>
+using StateGetterFunc = std::function<const T&(const StateId&)>;
 
 /**
  * @brief 简化的GNC变换提供者
  * 
- * 这是ITransformProvider的唯一实现，使用状态获取函数避免直接依赖StateManager
+ * 这是ITransformProvider的唯一实现，使用状态获取函数获取状态
  */
 class SimpleGncTransformProvider : public ITransformProvider {
 public:
     /**
      * @brief 构造函数
-     * @param state_getter 状态获取函数
+     * @param vector_getter 获取vector<double>状态的函数
+     * @param vector3d_getter 获取Vector3d状态的函数
+     * @param quaternion_getter 获取Quaterniond状态的函数
      */
-    explicit SimpleGncTransformProvider(StateGetterFunc state_getter) 
-        : state_getter_(std::move(state_getter)) {
+    explicit SimpleGncTransformProvider(
+        StateGetterFunc<std::vector<double>> vector_getter,
+        StateGetterFunc<Vector3d> vector3d_getter = nullptr,
+        StateGetterFunc<Quaterniond> quaternion_getter = nullptr) 
+        : vector_getter_(std::move(vector_getter)),
+          vector3d_getter_(std::move(vector3d_getter)),
+          quaternion_getter_(std::move(quaternion_getter)) {
         initializeTransforms();
     }
 
     // ITransformProvider 接口实现
-    gnc::math::transform::Transform getTransform(
+    Transform getTransform(
         const FrameIdentifier& from_frame,
         const FrameIdentifier& to_frame) const override {
         
         // 相同坐标系直接返回
         if (validation::areFramesEqual(from_frame, to_frame)) {
-            return gnc::math::transform::Transform::Identity();
+            return Transform::Identity();
         }
 
         // 检查缓存
@@ -111,10 +120,12 @@ public:
     }
 
 private:
-    StateGetterFunc state_getter_;
+    StateGetterFunc<std::vector<double>> vector_getter_;
+    StateGetterFunc<Vector3d> vector3d_getter_;
+    StateGetterFunc<Quaterniond> quaternion_getter_;
     CoordinateSystemRegistry registry_;
     mutable std::unordered_map<std::pair<FrameIdentifier, FrameIdentifier>, 
-                              gnc::math::transform::Transform,
+                              Transform,
                               PairHash> transform_cache_;
     mutable std::mutex cache_mutex_;
 
@@ -124,28 +135,35 @@ private:
     void initializeTransforms() {
         // 惯性坐标系到载体坐标系的动态变换
         registry_.addDynamicTransform("INERTIAL", "BODY",
-            [this]() -> gnc::math::transform::Transform {
+            [this]() -> Transform {
                 try {
-                    auto attitude_any = state_getter_(
-                        StateId{{1, "Dynamics"}, "attitude_truth_quat"});
-                    
-                    if (attitude_any.has_value()) {
-                        auto attitude = std::any_cast<std::vector<double>>(attitude_any);
-                        if (attitude.size() >= 4) {
-                            gnc::math::transform::Transform transform(
-                                attitude[0], attitude[1], attitude[2], attitude[3]);
-                            return transform.inverse(); // 从惯性到载体
-                        }
+                    // 使用vector_getter获取四元数数据（存储为std::vector<double>）
+                    if (quaternion_getter_) {
+                        auto attitude = quaternion_getter_(
+                            StateId{{1, "Dynamics"}, "attitude_truth_quat"});
+                        
+                        Transform transform(attitude);
+                        return transform.inverse(); // 从惯性到载体
+                        
                     }
                 } catch (...) {
                     // 获取失败时返回单位变换
                 }
-                return gnc::math::transform::Transform::Identity();
+                return Transform::Identity();
             },
             "Inertial to Body transformation");
 
         // 可以在这里添加更多变换关系
-        // 但保持简单，只添加真正需要的
+        // 例如使用不同类型的状态获取器：
+        // registry_.addDynamicTransform("NED", "INERTIAL",
+        //     [this]() -> Transform {
+        //         if (vector3d_getter_) {
+        //             auto position = vector3d_getter_(
+        //                 StateId{{1, "GPS"}, "position_ned"});
+        //             // 基于位置计算变换...
+        //         }
+        //         return Transform::Identity();
+        //     });
     }
 };
 
@@ -168,11 +186,17 @@ public:
 
     /**
      * @brief 初始化全局实例
-     * @param state_getter 状态获取函数
+     * @param vector_getter 获取vector<double>状态的函数
+     * @param vector3d_getter 获取Vector3d状态的函数
+     * @param quaternion_getter 获取Quaterniond状态的函数
      */
-    static void initialize(StateGetterFunc state_getter) {
+    static void initialize(
+        StateGetterFunc<std::vector<double>> vector_getter,
+        StateGetterFunc<Vector3d> vector3d_getter = nullptr,
+        StateGetterFunc<Quaterniond> quaternion_getter = nullptr) {
         if (!instance_) {
-            instance_ = std::make_unique<SimpleGncTransformProvider>(std::move(state_getter));
+            instance_ = std::make_unique<SimpleGncTransformProvider>(
+                std::move(vector_getter), std::move(vector3d_getter), std::move(quaternion_getter));
         }
     }
 
@@ -216,14 +240,31 @@ inline std::vector<double> transformVector(const std::vector<double>& vec_data,
     auto& provider = SimpleTransformManager::getInstance();
     auto transform = provider.getTransform(from_frame, to_frame);
     
-    gnc::math::tensor::Vector3d vec(vec_data[0], vec_data[1], vec_data[2]);
+    Vector3d vec(vec_data[0], vec_data[1], vec_data[2]);
     auto transformed = transform * vec;
     
     return {transformed.x(), transformed.y(), transformed.z()};
 }
 
 /**
- * @brief 安全的向量坐标转换
+ * @brief 向量坐标转换（Vector3d版本）
+ */
+inline Vector3d transformVector(const Vector3d& vec_data,
+                               const FrameIdentifier& from_frame,
+                               const FrameIdentifier& to_frame) {
+    if (validation::areFramesEqual(from_frame, to_frame)) {
+        return vec_data;
+    }
+    
+    auto& provider = SimpleTransformManager::getInstance();
+    auto transform = provider.getTransform(from_frame, to_frame);
+    auto transformed = transform * vec_data;
+    
+    return transformed;
+}
+
+/**
+ * @brief 安全的向量坐标转换（std::vector版本）
  */
 inline std::vector<double> safeTransformVector(const std::vector<double>& vec_data,
                                                const FrameIdentifier& from_frame,
@@ -234,6 +275,23 @@ inline std::vector<double> safeTransformVector(const std::vector<double>& vec_da
         }
         return transformVector(vec_data, from_frame, to_frame);
     } catch (...) {
+        return vec_data;
+    }
+}
+
+/**
+ * @brief 安全的向量坐标转换（Vector3d版本）
+ */
+inline Vector3d safeTransformVector(const Vector3d& vec_data,
+                                   const FrameIdentifier& from_frame,
+                                   const FrameIdentifier& to_frame) {
+    try {
+        if (!SimpleTransformManager::isInitialized()) {
+            return vec_data;
+        }
+        return transformVector(vec_data, from_frame, to_frame);
+    } catch (...) {
+        LOG_WARN("Failed to transform vector from {} to {}", from_frame.c_str(), to_frame.c_str());
         return vec_data;
     }
 }

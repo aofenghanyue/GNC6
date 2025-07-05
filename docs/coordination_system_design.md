@@ -71,7 +71,7 @@
     - **`class ITransformProvider`**: 纯抽象基类。
     - **核心虚函数**:
         ```cpp
-        virtual gnc::math::transform::Transform getTransform(
+        virtual gnc::math::Transform getTransform(
             const FrameIdentifier& from,
             const FrameIdentifier& to
         ) const = 0;
