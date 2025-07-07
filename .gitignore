@@ -34,3 +34,5 @@ doxygen_warnings.txt
 # Custom project specific
 # Add your project specific ignores here
 .env
+CLAUDE.md
+
