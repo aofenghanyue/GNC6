@@ -20,6 +20,7 @@ public:
 protected:
     void updateImpl() override {
         auto throttle = getState<double>({{getVehicleId(), "GuidanceWithPhase"}, "desired_throttle_level"});
+        auto throttle2 = get<double>("GuidanceWithPhase.desired_throttle_level");
         setState("engine_gimbal_angle_rad", throttle * 0.1); // 伪实现
         LOG_COMPONENT_DEBUG("Output gimbal angle: {}", throttle * 0.1);
     }
