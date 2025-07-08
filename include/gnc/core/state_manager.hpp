@@ -3,6 +3,7 @@
 #include "component_base.hpp"
 #include "../common/exceptions.hpp"
 #include "state_access.hpp"
+#include "../../math/math.hpp"  // 添加数学类型支持
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
@@ -152,7 +153,10 @@ public:
         
         LOG_INFO("[StateManager] All components in execution order are properly registered.");
 
-        // 3. 初始化所有组件
+        // 4. 状态连接验证 (新增)
+        validateStateConnections();
+
+        // 5. 初始化所有组件
         LOG_INFO("[StateManager] Initializing components...");
         for (const auto& id : executionOrder_) {
             if (components_.count(id)) {
@@ -203,6 +207,119 @@ protected:
     }
 
 private:
+    /**
+     * @brief 验证状态连接的完整性和类型匹配
+     * @details 在组件初始化前检查所有输入状态的连接，包括：
+     * 1. 检查源状态是否存在
+     * 2. 检查类型是否匹配
+     * 3. 生成友好的错误报告
+     * @throws ConfigurationError 当发现连接错误时抛出
+     */
+    void validateStateConnections() {
+        LOG_DEBUG("[StateManager] Validating state connections...");
+        
+        // 收集所有输出状态的类型信息
+        std::unordered_map<StateId, std::string, std::hash<StateId>> outputTypes;
+        for (const auto& [id, component] : components_) {
+            auto interface = component->getInterface();
+            for (const auto& output : interface.getOutputs()) {
+                StateId stateId{id, output.name};
+                outputTypes[stateId] = output.type;
+            }
+        }
+        
+        // 验证所有输入状态的连接
+        std::vector<std::string> errors;
+        for (const auto& [id, component] : components_) {
+            auto interface = component->getInterface();
+            for (const auto& input : interface.getInputs()) {
+                if (!input.source) continue; // 跳过没有源的输入
+                
+                // 检查源状态是否存在
+                auto it = outputTypes.find(*input.source);
+                if (it == outputTypes.end()) {
+                    errors.push_back(formatConnectionError(id, input, "source state not found"));
+                    continue;
+                }
+                
+                // 检查类型是否匹配
+                if (it->second != input.type) {
+                    errors.push_back(formatTypeError(id, input, it->second));
+                }
+            }
+        }
+        
+        // 如果有错误，生成报告并抛出异常
+        if (!errors.empty()) {
+            LOG_ERROR("[StateManager] State connection validation failed with {} errors:", errors.size());
+            for (size_t i = 0; i < errors.size(); ++i) {
+                LOG_ERROR("  [{}] {}", i + 1, errors[i].c_str());
+            }
+            
+            std::string errorMsg = "State connection validation failed:\n";
+            for (const auto& error : errors) {
+                errorMsg += "  - " + error + "\n";
+            }
+            throw ConfigurationError("StateManager", errorMsg);
+        }
+        
+        LOG_INFO("[StateManager] State connection validation passed successfully");
+    }
+    
+    /**
+     * @brief 格式化连接错误信息
+     */
+    std::string formatConnectionError(const ComponentId& component, 
+                                     const StateSpec& input,
+                                     const std::string& reason) {
+        return "Component '" + component.name + 
+               "' input '" + input.name + 
+               "' cannot connect to '" + input.source->component.name + 
+               "." + input.source->name + "': " + reason;
+    }
+    
+    /**
+     * @brief 格式化类型错误信息
+     */
+    std::string formatTypeError(const ComponentId& component,
+                               const StateSpec& input,
+                               const std::string& actualType) {
+        std::string expectedType = friendlyTypeName(input.type);
+        std::string foundType = friendlyTypeName(actualType);
+        
+        return "Type mismatch: Component '" + component.name + 
+               "' input '" + input.name + 
+               "' expects type '" + expectedType + 
+               "' but '" + input.source->component.name + 
+               "." + input.source->name + 
+               "' provides type '" + foundType + "'";
+    }
+    
+    /**
+     * @brief 将编译器类型名转换为友好的类型名
+     */
+    std::string friendlyTypeName(const std::string& mangledName) {
+        // 简单的映射表，用于常见的GNC类型
+        static const std::unordered_map<std::string, std::string> typeMap = {
+            {typeid(Vector3d).name(), "Vector3d"},
+            {typeid(Quaterniond).name(), "Quaterniond"}, 
+            {typeid(double).name(), "double"},
+            {typeid(float).name(), "float"},
+            {typeid(int).name(), "int"},
+            {typeid(bool).name(), "bool"},
+            {typeid(Matrix3d).name(), "Matrix3d"},
+            {typeid(std::string).name(), "string"}
+        };
+        
+        auto it = typeMap.find(mangledName);
+        if (it != typeMap.end()) {
+            return it->second;
+        }
+        
+        // 如果没有找到映射，返回原始名称（可能不够友好，但至少可用）
+        return mangledName;
+    }
+
     std::unordered_map<ComponentId, ComponentBase*, std::hash<ComponentId>> components_;
     std::unordered_map<StateId, std::any, std::hash<StateId>> states_;
     std::vector<ComponentId> executionOrder_;
