@@ -5,7 +5,23 @@ utility:
     file_enabled: true
     file_path: "logs/gnc.log"
     level: "trace"
-  bias_adapter:
-    enabled: true
-    bias_factor: 1.2
-    noise_std: 0.01
+  disturbance:
+    mode: "single"  # single 或 csv
+    csv_file: "config/param_sets.csv"  # CSV模式时的文件路径
+    active_set: 0  # CSV模式时的当前参数集索引
+    parameters:
+      imu_gyro_bias: [0.01, 0.01, 0.01]
+      imu_accel_bias: [0.1, 0.1, 0.1]
+      imu_gyro_noise_std: 0.001
+      imu_accel_noise_std: 0.01
+      gps_position_bias: [2.0, 2.0, 1.0]
+      gps_velocity_bias: [0.1, 0.1, 0.05]
+      gps_position_noise_std: 1.0
+      gps_velocity_noise_std: 0.1
+      drag_factor: 1.1
+      lift_factor: 1.0
+      control_gain_factor: 1.0
+      actuator_bias: [0.0, 0.0, 0.0]
+      wind_factor: 1.0
+      mass_factor: 1.0
+      thrust_factor: 1.0

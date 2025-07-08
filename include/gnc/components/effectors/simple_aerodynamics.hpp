@@ -13,6 +13,7 @@ public:
         : states::ComponentBase(id, "Aerodynamics", instanceName) {
         // 依赖大气密度和飞行器速度（来自理想传感器）
         declareInput<double>("air_density_kg_m3", { {id, "Atmosphere"}, "air_density_kg_m3" });
+        declareInput<double>("drag_factor", { {id, "Disturbance"}, "drag_factor" });
         // declareInput<Vector3d>("velocity_truth_mps", { {id, "Dynamics"}, "velocity_truth_mps" }, false);
         
         declareOutput<Vector3d>("aero_force_truth_N");
@@ -29,6 +30,9 @@ protected:
         // 伪实现：简单阻力模型
         double speed_sq = velocity[0]*velocity[0] + velocity[1]*velocity[1] + velocity[2]*velocity[2];
         double drag = -0.5 * density * speed_sq * 0.1 /*CdA*/;
+        LOG_COMPONENT_TRACE("Drag: {}, Drag factor: {}", drag, get<double>("Disturbance.drag_factor"));
+        drag *= get<double>("Disturbance.drag_factor");
+        LOG_COMPONENT_TRACE("Drag after factor: {}", drag);
         std::vector<double> force = {drag, 0.0, 0.0}; // 假设沿X轴负方向
         
         setState("aero_force_truth_N", force);
