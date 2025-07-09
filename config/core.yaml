@@ -4,7 +4,7 @@ core:
   # 由TimingManagerComponent读取
   timing:
     duration_s: 10.0  # 仿真总时长（秒）
-    time_step_s: 2.0 # 仿真步长（秒）
+    time_step_s: 1.0 # 仿真步长（秒）
   # 飞行器配置
   vehicles:
     - id: 0  # 飞行器ID

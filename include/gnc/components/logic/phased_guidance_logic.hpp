@@ -138,6 +138,9 @@ protected:
             LOG_COMPONENT_INFO("Guidance phase changed to: {} (cycle: {})",
                       current_phase.c_str(), cycle_count_);
         }
+        if (flow_controller_->hasStateChanged()) {
+            LOG_COMPONENT_INFO("Guidance phase change reason: {}", flow_controller_->getLastTransitionReason().c_str());
+        }
         
         // 记录制导输出
         LOG_COMPONENT_DEBUG("Phase: {}, Guidance: [{:.3f}, {:.3f}, {:.3f}], Throttle: {:.3f}, Time in phase: {:.2f}s",
@@ -157,10 +160,13 @@ private:
         flow_controller_->addState("initial", "Initial guidance phase")
                         .addState("main", "Main guidance phase");
         
-        // 添加转换条件：运行5个周期后切换到主制导阶段
-        flow_controller_->addTransition("initial", "main", [this]() {
-            return cycle_count_ >= 5;
-        }, "Switch to main guidance after 5 cycles");
+        // 添加转换条件：运行周期大于等于4，持续三个周期后切换到主制导阶段
+        flow_controller_->addTransition("initial", "main")
+        ->withCondition([this]() {
+            return cycle_count_ >= 4;
+        })
+        ->sustainedFor(4)
+        ->withDescription("cycle_count_ >= 4 for 4 cycles");;
         
         // 设置状态动作
         flow_controller_->setEntryAction("initial", [this]() {

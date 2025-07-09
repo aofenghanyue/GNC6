@@ -12,6 +12,86 @@
 
 namespace gnc::components::utility {
 
+// 前向声明
+class FlowController;
+
+/**
+ * @brief 转换构建器，支持链式API配置转换
+ */
+class TransitionBuilder {
+public:
+    TransitionBuilder(FlowController* controller, const std::string& from, const std::string& to)
+        : controller_(controller), from_(from), to_(to) {}
+    
+    /**
+     * @brief 设置转换条件
+     */
+    TransitionBuilder* withCondition(std::function<bool()> condition) {
+        condition_ = condition;
+        return this;
+    }
+    
+    /**
+     * @brief 设置需要连续满足的周期数
+     */
+    TransitionBuilder* sustainedFor(int cycles) {
+        required_cycles_ = cycles;
+        return this;
+    }
+    
+    /**
+     * @brief 设置需要连续满足的时间（秒）
+     */
+    TransitionBuilder* sustainedForSeconds(double seconds) {
+        required_seconds_ = seconds;
+        return this;
+    }
+    
+    /**
+     * @brief 设置条件不满足时是否立即重置计数
+     */
+    TransitionBuilder* resetOnFalse(bool reset = true) {
+        reset_on_false_ = reset;
+        return this;
+    }
+    
+    /**
+     * @brief 设置转换描述
+     */
+    TransitionBuilder* withDescription(const std::string& desc) {
+        description_ = desc;
+        return this;
+    }
+    
+    /**
+     * @brief 设置转换动作
+     */
+    TransitionBuilder* withAction(std::function<void()> action) {
+        action_ = action;
+        return this;
+    }
+    
+    /**
+     * @brief 构建并添加转换（析构时自动调用）
+     */
+    ~TransitionBuilder() {
+        build();
+    }
+    
+private:
+    void build();
+    
+    FlowController* controller_;
+    std::string from_;
+    std::string to_;
+    std::function<bool()> condition_;
+    std::function<void()> action_;
+    int required_cycles_ = 0;
+    double required_seconds_ = 0.0;
+    bool reset_on_false_ = true;
+    std::string description_;
+};
+
 /**
  * @brief 流程控制器组件
  * 
@@ -58,6 +138,16 @@ public:
         ConditionFunc condition;    ///< 转换条件
         ActionFunc action;          ///< 转换动作（可选）
         std::string description;    ///< 转换描述（可选，用于日志和调试）
+        
+        // 持续条件检查相关（默认0表示不限制）
+        int required_cycles = 0;        ///< 需要连续满足的周期数（0=立即转换）
+        double required_seconds = 0.0;  ///< 需要连续满足的时间（0=立即转换）
+        bool reset_on_false = true;     ///< 条件不满足时是否立即重置计数
+        
+        // 运行时状态（不需要用户设置）
+        mutable int satisfied_cycles = 0;       ///< 已满足的周期数
+        mutable double satisfied_time = 0.0;    ///< 已满足的时间
+        mutable bool was_satisfied = false;     ///< 上次是否满足
     };
     
     /**
@@ -140,7 +230,21 @@ public:
     }
 
     /**
-     * @brief 添加转换（简化版本）
+     * @brief 添加转换（新的链式API）
+     * 
+     * @param from_state 源状态
+     * @param to_state 目标状态
+     * @return std::unique_ptr<TransitionBuilder> 转换构建器
+     */
+    std::unique_ptr<TransitionBuilder> addTransition(
+        const StateType& from_state,
+        const StateType& to_state
+    ) {
+        return std::make_unique<TransitionBuilder>(this, from_state, to_state);
+    }
+
+    /**
+     * @brief 添加转换（传统API，保持向后兼容）
      * 
      * @param from_state 源状态
      * @param to_state 目标状态
@@ -348,6 +452,15 @@ public:
     }
 
     /**
+     * @brief 获取最后的转换原因
+     * 
+     * @return const std::string& 转换原因描述
+     */
+    const std::string& getLastTransitionReason() const {
+        return last_transition_reason_;
+    }
+
+    /**
      * @brief 重置流程控制器到初始状态
      */
     void reset() {
@@ -414,60 +527,77 @@ protected:
         // 重置状态变化标志
         state_changed_ = false;
         
-        // 增加当前状态停留时间
+        // 获取时间步长
+        double delta_time = 0.1; // 默认值
         if (stateAccess_) {
             try {
-                // 直接通过传入的StateAccess接口获取状态
-                time_in_state_ += stateAccess_->getState<double>({{globalId, "TimingManager"}, "timing_delta_s"});
-            } catch (const std::exception& e) {
-                // 如果无法获取时间步长，使用默认值
-                time_in_state_ += 0.1;
-                LOG_COMPONENT_WARN("Failed to get timing delta, using default value 0.1: {}", e.what());
+                delta_time = stateAccess_->getState<double>({{globalId, "TimingManager"}, "timing_delta_s"});
+            } catch (const std::exception&) {
+                // 使用默认值，不打印过多警告
             }
-        } else {
-            time_in_state_ += 0.1; // 默认步进值
-            LOG_COMPONENT_WARN("State access not available, using default timing delta 0.1");
         }
         
+        // 增加当前状态停留时间
+        time_in_state_ += delta_time;
+        
         // 检查所有可能的转换
-        for (const auto& transition : transitions_) {
-            if (transition.from_state == current_state_ && transition.condition && transition.condition()) {
-                // 执行当前状态的离开动作
-                if (states_.find(current_state_) != states_.end() && states_[current_state_].exit_action) {
-                    states_[current_state_].exit_action();
+        for (auto& transition : transitions_) {
+            if (transition.from_state != current_state_) {
+                continue;  // 跳过不是从当前状态出发的转换
+            }
+            
+            // 检查条件
+            bool condition_met = transition.condition && transition.condition();
+            
+            if (condition_met) {
+                // 条件满足
+                if (!transition.was_satisfied) {
+                    // 第一次满足，重置计数
+                    transition.satisfied_cycles = 0;
+                    transition.satisfied_time = 0.0;
                 }
                 
-                // 记录前一个状态
-                previous_state_ = current_state_;
+                transition.satisfied_cycles++;
+                transition.satisfied_time += delta_time;
+                transition.was_satisfied = true;
                 
-                // 执行转换动作
-                if (transition.action) {
-                    transition.action();
+                // 检查是否可以转换
+                bool can_transition = false;
+                
+                if (transition.required_cycles > 0) {
+                    // 需要满足指定周期数
+                    can_transition = transition.satisfied_cycles >= transition.required_cycles;
+                } else if (transition.required_seconds > 0.0) {
+                    // 需要满足指定时间
+                    can_transition = transition.satisfied_time >= transition.required_seconds;
+                } else {
+                    // 没有持续条件要求，立即转换
+                    can_transition = true;
                 }
                 
-                // 更新当前状态
-                current_state_ = transition.to_state;
-                time_in_state_ = 0.0;
-                state_changed_ = true;
-                
-                // 记录状态转换历史
-                state_history_.push_back({previous_state_, current_state_, 
-                                       transition.description.empty() ? "Condition met" : transition.description});
-                if (state_history_.size() > max_history_size_) {
-                    state_history_.erase(state_history_.begin());
+                if (can_transition) {
+                    // 执行状态转换
+                    executeTransition(transition);
+                    
+                    // 转换后重置所有转换的计数器
+                    for (auto& t : transitions_) {
+                        t.satisfied_cycles = 0;
+                        t.satisfied_time = 0.0;
+                        t.was_satisfied = false;
+                    }
+                    
+                    break;  // 只执行第一个满足条件的转换
                 }
+            } else {
+                // 条件不满足
+                transition.was_satisfied = false;
                 
-                // 执行新状态的进入动作
-                if (states_.find(current_state_) != states_.end() && states_[current_state_].entry_action) {
-                    states_[current_state_].entry_action();
+                if (transition.reset_on_false) {
+                    // 立即重置计数
+                    transition.satisfied_cycles = 0;
+                    transition.satisfied_time = 0.0;
                 }
-                
-                LOG_COMPONENT_INFO("State transition: {} -> {} ({})", 
-                          previous_state_.c_str(), current_state_.c_str(), 
-                          transition.description.empty() ? "Condition met" : transition.description.c_str());
-                
-                // 只执行第一个满足条件的转换
-                break;
+                // 否则保持计数（允许条件短暂不满足）
             }
         }
         
@@ -475,8 +605,6 @@ protected:
         if (states_.find(current_state_) != states_.end() && states_[current_state_].update_action) {
             states_[current_state_].update_action();
         }
-        
-        // 作为工具组件，不会使用状态管理器注册，不允许使用状态管理器setState进行状态更新
     }
 
     /**
@@ -505,6 +633,57 @@ protected:
     }
 
 private:
+    // 让TransitionBuilder能访问私有成员
+    friend class TransitionBuilder;
+    
+    /**
+     * @brief 执行状态转换
+     */
+    void executeTransition(const Transition& transition) {
+        // 执行当前状态的离开动作
+        if (states_.find(current_state_) != states_.end() && states_[current_state_].exit_action) {
+            states_[current_state_].exit_action();
+        }
+        
+        // 记录前一个状态
+        previous_state_ = current_state_;
+        
+        // 执行转换动作
+        if (transition.action) {
+            transition.action();
+        }
+        
+        // 更新当前状态
+        current_state_ = transition.to_state;
+        time_in_state_ = 0.0;
+        state_changed_ = true;
+        
+        // 构建转换描述
+        std::string desc = transition.description.empty() ? "Condition met" : transition.description;
+        
+        if (transition.required_cycles > 0) {
+            desc += " (sustained for " + std::to_string(transition.satisfied_cycles) + " cycles)";
+        } else if (transition.required_seconds > 0.0) {
+            desc += " (sustained for " + std::to_string(transition.satisfied_time) + " seconds)";
+        }
+        
+        last_transition_reason_ = desc;
+        
+        // 记录状态转换历史
+        state_history_.push_back({previous_state_, current_state_, desc});
+        if (state_history_.size() > max_history_size_) {
+            state_history_.erase(state_history_.begin());
+        }
+        
+        // 执行新状态的进入动作
+        if (states_.find(current_state_) != states_.end() && states_[current_state_].entry_action) {
+            states_[current_state_].entry_action();
+        }
+        
+        LOG_COMPONENT_INFO("State transition: {} -> {} ({})", 
+                  previous_state_.c_str(), current_state_.c_str(), desc.c_str());
+    }
+    
     /**
      * @brief 验证状态和转换的有效性
      */
@@ -561,7 +740,26 @@ private:
     std::vector<StateTransitionRecord> state_history_;
     size_t max_history_size_ = 100;  ///< 最大历史记录大小
     
+    // 最后的转换原因
+    std::string last_transition_reason_;
+    
     states::IStateAccess* stateAccess_{nullptr};  ///< 状态访问接口（从父组件传入）
 };
+
+// TransitionBuilder::build方法的实现
+inline void TransitionBuilder::build() {
+    FlowController::Transition transition;
+    transition.from_state = from_;
+    transition.to_state = to_;
+    transition.condition = condition_;
+    transition.action = action_;
+    transition.required_cycles = required_cycles_;
+    transition.required_seconds = required_seconds_;
+    transition.reset_on_false = reset_on_false_;
+    transition.description = description_;
+    
+    controller_->addTransition(transition);
+}
+
 // 作为工具，不进行注册，由使用的组件手动注册
 } // namespace gnc::components::utility
