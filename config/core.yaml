@@ -12,6 +12,7 @@ core:
         - TimingManager
         - type: CoordinationInitializer
           name: CoordinationInitializer
+        - DataLogger
         
     - id: 1  # 飞行器ID
       components:

@@ -1,0 +1,169 @@
+/**
+ * @file data_logger.hpp
+ * @brief DataLogger component for recording simulation data
+ * 
+ * @details DataLogger Component Design
+ * 
+ * 1. Core Functionality
+ *    - State Discovery: Automatically discover and select states based on regex patterns
+ *    - Data Recording: Record selected states to HDF5 or CSV files
+ *    - Metadata Integration: Include Git hash, configuration snapshots, and timestamps
+ *    - Flexible Configuration: Configure through YAML files
+ * 
+ * 2. Design Patterns
+ *    - Observer Pattern: Passively observes system states without modification
+ *    - Strategy Pattern: Different file writers for different output formats
+ *    - Component Pattern: Inherits from ComponentBase for framework integration
+ * 
+ * 3. Usage Example
+ *    @code
+ *    // Configuration in utility.yaml:
+ *    DataLogger:
+ *      format: "hdf5"
+ *      file_path: "logs/simulation_data.h5"
+ *      log_frequency_hz: 100
+ *      log_metadata: true
+ *      selectors:
+ *        - component_regex: ".*Guidance.*"
+ *          state_regex: ".*"
+ *    @endcode
+ */
+#pragma once
+
+#include "../../core/component_base.hpp"
+#include "../../common/types.hpp"
+#include "gnc/core/component_registrar.hpp"
+#include <string>
+#include <vector>
+#include <memory>
+
+namespace gnc {
+namespace components {
+namespace utility {
+
+/**
+ * @brief DataLogger component for recording simulation data
+ * 
+ * @details The DataLogger component is designed as a passive observer that:
+ * 1. Discovers states based on configurable regex patterns
+ * 2. Records selected states to files (HDF5 or CSV format)
+ * 3. Includes metadata for reproducible scientific experiments
+ * 4. Operates efficiently without impacting simulation performance
+ * 
+ * Key Features:
+ * - Non-intrusive: No modifications needed to existing components
+ * - Flexible: Pattern-based state selection
+ * - Efficient: Cached state lists and optimized I/O
+ * - Scientific: Built-in metadata for reproducibility
+ */
+class DataLogger : public gnc::states::ComponentBase {
+public:
+    /**
+     * @brief Constructor with custom instance name
+     * @param id Vehicle ID this component belongs to
+     * @param instanceName Custom name for this component instance
+     */
+    DataLogger(gnc::states::VehicleId id, const std::string& instanceName="")
+        : ComponentBase(id, "DataLogger", instanceName)
+        , output_format_("hdf5")
+        , file_path_("logs/datalogger_output.h5")
+        , log_frequency_hz_(0.0)
+        , log_metadata_(true)
+        , last_log_time_(0.0)
+        , initialized_(false)
+    {
+        LOG_COMPONENT_DEBUG("DataLogger created with instance name: {}", instanceName);
+    }
+    /**
+     * @brief Destructor
+     */
+    virtual ~DataLogger() = default;
+
+    // Disable copy and move operations
+    DataLogger(const DataLogger&) = delete;
+    DataLogger& operator=(const DataLogger&) = delete;
+    DataLogger(DataLogger&&) = delete;
+    DataLogger& operator=(DataLogger&&) = delete;
+
+    /**
+     * @brief Get component type identifier
+     * @return Component type string for factory registration
+     */
+    std::string getComponentType() const override;
+
+    /**
+     * @brief Initialize the DataLogger component
+     * 
+     * @details Initialization process:
+     * 1. Load configuration from utility.yaml
+     * 2. Discover and select states based on regex patterns
+     * 3. Create and initialize appropriate file writer
+     * 4. Set up metadata collection if enabled
+     * 
+     * Called once after all components are registered but before first update.
+     */
+    void initialize() override;
+
+    /**
+     * @brief Finalize the DataLogger component
+     * 
+     * @details Finalization process:
+     * 1. Flush all data buffers to disk
+     * 2. Properly close file handles
+     * 3. Clean up resources
+     * 4. Ensure data integrity
+     * 
+     * Called when simulation ends or component is destroyed.
+     */
+    void finalize() override;
+
+protected:
+    /**
+     * @brief Update implementation - records data at configured frequency
+     * 
+     * @details Update process:
+     * 1. Check if it's time to log based on frequency setting
+     * 2. Get current time from TimingManager
+     * 3. Collect values for all cached states
+     * 4. Write data point using file writer
+     * 
+     * Called every simulation step by the StateManager.
+     */
+    void updateImpl() override;
+
+private:
+    // Configuration parameters (loaded from utility.yaml)
+    std::string output_format_;        ///< Output format: "hdf5" or "csv"
+    std::string file_path_;           ///< Output file path
+    double log_frequency_hz_;         ///< Logging frequency in Hz (0 = every step)
+    bool log_metadata_;               ///< Whether to include metadata
+
+    // Runtime state
+    std::vector<gnc::states::StateId> states_to_log_;  ///< Cached list of states to record
+    double last_log_time_;            ///< Last time data was logged
+    bool initialized_;                ///< Whether component has been initialized
+
+    /**
+     * @brief Load configuration from utility.yaml
+     * @throws std::runtime_error if configuration is invalid
+     */
+    void loadConfiguration();
+
+    /**
+     * @brief Discover and select states based on configuration
+     * @details Uses regex patterns to match component and state names
+     */
+    void discoverAndSelectStates();
+
+    /**
+     * @brief Check if it's time to log data based on frequency setting
+     * @param current_time Current simulation time
+     * @return true if data should be logged
+     */
+    bool shouldLog(double current_time) const;
+};
+// Register the DataLogger component with the factory
+static gnc::ComponentRegistrar<DataLogger> data_logger_registrar("DataLogger");
+} // namespace utility
+} // namespace components
+} // namespace gnc

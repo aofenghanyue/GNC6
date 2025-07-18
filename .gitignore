@@ -35,4 +35,4 @@ doxygen_warnings.txt
 # Add your project specific ignores here
 .env
 CLAUDE.md
-
+.kiro
