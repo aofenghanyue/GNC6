@@ -4,6 +4,7 @@
  */
 
 #include "gnc/components/utility/data_logger.hpp"
+#include "gnc/components/utility/csv_writer.hpp"
 #include "gnc/components/utility/simple_logger.hpp"
 #include "gnc/components/utility/config_manager.hpp"
 #include "gnc/core/state_manager.hpp"
@@ -24,8 +25,7 @@ namespace utility {
 
 std::unique_ptr<FileWriter> createFileWriter(const std::string& format) {
     if (format == "csv") {
-        // TODO: Implement CSVWriter in task 5
-        throw std::runtime_error("CSV writer not yet implemented");
+        return std::make_unique<CSVWriter>();
     } else if (format == "hdf5") {
         // TODO: Implement HDF5Writer in task 6
         throw std::runtime_error("HDF5 writer not yet implemented");
@@ -66,7 +66,15 @@ void DataLogger::initialize() {
             throw;
         }
 
-        // TODO: Initialize file writer (Task 5-6)
+        // Initialize file writer
+        try {
+            file_writer_->initialize(file_path_, states_to_log_, log_metadata_);
+            LOG_COMPONENT_DEBUG("File writer initialized successfully");
+        } catch (const std::exception& e) {
+            LOG_COMPONENT_ERROR("Failed to initialize file writer: {}", e.what());
+            throw;
+        }
+
         // TODO: Set up metadata collection (Task 7)
 
         initialized_ = true;
