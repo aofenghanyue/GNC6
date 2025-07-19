@@ -42,6 +42,25 @@ namespace components {
 namespace utility {
 
 /**
+ * @brief Configuration structure for state selectors
+ */
+struct StateSelector {
+    std::string state;                    ///< Specific state name (format: "Component.state")
+    std::string component_regex;          ///< Component name regex pattern
+    std::string state_regex;              ///< State name regex pattern
+    std::string exclude_state_regex;      ///< Exclusion regex pattern
+    
+    StateSelector() = default;
+    
+    StateSelector(const std::string& specific_state) 
+        : state(specific_state) {}
+        
+    StateSelector(const std::string& comp_regex, const std::string& st_regex, 
+                  const std::string& exclude_regex = "")
+        : component_regex(comp_regex), state_regex(st_regex), exclude_state_regex(exclude_regex) {}
+};
+
+/**
  * @brief DataLogger component for recording simulation data
  * 
  * @details The DataLogger component is designed as a passive observer that:
@@ -138,6 +157,9 @@ private:
     double log_frequency_hz_;         ///< Logging frequency in Hz (0 = every step)
     bool log_metadata_;               ///< Whether to include metadata
 
+    // Configuration selectors
+    std::vector<StateSelector> selectors_;  ///< State selection rules from configuration
+    
     // Runtime state
     std::vector<gnc::states::StateId> states_to_log_;  ///< Cached list of states to record
     double last_log_time_;            ///< Last time data was logged

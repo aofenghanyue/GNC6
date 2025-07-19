@@ -777,6 +777,11 @@ nlohmann::json ConfigManager::yamlToJson(const YAML::Node& yaml_node) const {
         case YAML::NodeType::Scalar: {
             std::string value = yaml_node.as<std::string>();
             
+            // 检查是否有显式的字符串标签 (!!str)
+            if (yaml_node.Tag() == "tag:yaml.org,2002:str") {
+                return value;  // 强制作为字符串返回
+            }
+            
             // 尝试解析为不同类型
             if (value == "true" || value == "True" || value == "TRUE") {
                 return true;

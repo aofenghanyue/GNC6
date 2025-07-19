@@ -5,6 +5,20 @@ utility:
     file_enabled: true
     file_path: "logs/gnc.log"
     level: "trace"
+  data_logger:
+    format: "hdf5"                    # "hdf5" or "csv"
+    file_path: "logs/simulation_data.h5"  # Output file path
+    log_frequency_hz: 100             # Logging frequency in Hz (0 = every step)
+    log_metadata: true                # Include git hash, config snapshot
+    selectors:                        # State selection rules
+      - state: "vehicle0.TimingManager.timing_current_s"  # Cross-vehicle specific state (vehicle 0)
+      - state: "vehicle1.Dynamics.position_truth_x"       # Cross-vehicle specific state (vehicle 1)
+      - state: "TimingManager.timing_current_s"          # Local vehicle specific state
+      - component_regex: ".*Guidance.*"            # Component pattern
+        state_regex: ".*"                         # All states in component
+      - component_regex: "^RigidBodyDynamics6DoF$"
+        state_regex: ".*_truth_.*"
+        exclude_state_regex: ".*_factor$"         # Exclusion pattern
   disturbance:
     mode: "single"  # single 或 csv
     csv_file: "config/param_sets.csv"  # CSV模式时的文件路径

@@ -339,13 +339,17 @@ protected:
      * @brief 便捷的状态获取方法
      * 
      * @tparam T 状态的数据类型
-     * @param path 状态路径，格式为 "Component.state" 或 "state"
+     * @param path 状态路径，支持三种格式：
+     *             - "state" - 本组件的状态
+     *             - "Component.state" - 本飞行器其他组件的状态
+     *             - "VehicleId.Component.state" - 指定飞行器的组件状态
      * @return const T& 状态值的常量引用
      * @throws std::runtime_error 当组件未注册或路径格式错误时抛出
      * 
-     * @details 支持两种路径格式：
-     * 1. "Component.state" - 访问其他组件的状态
-     * 2. "state" - 访问本组件的状态
+     * @details 支持三种路径格式：
+     * 1. "state" - 访问本组件的状态
+     * 2. "Component.state" - 访问本飞行器其他组件的状态
+     * 3. "VehicleId.Component.state" - 访问指定飞行器的组件状态
      * 
      * 性能优化：
      * - 使用内部缓存避免重复的StateId构造
@@ -353,8 +357,9 @@ protected:
      * 
      * 使用示例：
      * @code
-     * auto nav_pos = get<Vector3d>("Navigation.position");  // 其他组件状态
-     * auto my_cmd = get<Vector3d>("command");               // 本组件状态
+     * auto nav_pos = get<Vector3d>("Navigation.position");      // 本飞行器其他组件状态
+     * auto my_cmd = get<Vector3d>("command");                   // 本组件状态
+     * auto other_nav = get<Vector3d>("1.Navigation.position");  // 指定飞行器组件状态
      * @endcode
      */
     template<typename T>
@@ -407,33 +412,70 @@ private:
     /**
      * @brief 解析状态路径字符串
      * 
-     * @param path 状态路径，格式为 "Component.state" 或 "state"
+     * @param path 状态路径，支持三种格式：
+     *             - "state" - 本组件的状态
+     *             - "Component.state" - 本飞行器其他组件的状态
+     *             - "VehicleId.Component.state" - 指定飞行器的组件状态
      * @return StateId 解析后的状态标识符
      * @throws std::runtime_error 当路径格式无效时抛出
      * 
      * @details 路径解析规则：
-     * 1. 包含点号：解析为 "组件名.状态名"
-     * 2. 不含点号：视为本组件的状态名
+     * 1. 无点号：视为本组件的状态名
+     * 2. 一个点号：解析为 "组件名.状态名"，使用本飞行器ID
+     * 3. 两个点号：解析为 "飞行器ID.组件名.状态名"
      */
     StateId parsePath(const std::string& path) const {
-        size_t dot_pos = path.find('.');
+        size_t first_dot = path.find('.');
         
-        if (dot_pos == std::string::npos) {
+        if (first_dot == std::string::npos) {
             // 没有点号，认为是本组件的状态
             return {{getVehicleId(), getName()}, path};
         }
         
-        // 有点号，解析组件名和状态名
-        if (dot_pos == 0 || dot_pos == path.length() - 1) {
-            throw std::runtime_error("Invalid state path format: '" + path + 
-                                    "'. Expected 'Component.state' or 'state'");
+        size_t second_dot = path.find('.', first_dot + 1);
+        
+        if (second_dot == std::string::npos) {
+            // 只有一个点号，格式为 "Component.state"
+            if (first_dot == 0 || first_dot == path.length() - 1) {
+                throw std::runtime_error("Invalid state path format: '" + path + 
+                                        "'. Expected 'Component.state', 'VehicleId.Component.state', or 'state'");
+            }
+            
+            std::string component_name = path.substr(0, first_dot);
+            std::string state_name = path.substr(first_dot + 1);
+            
+            LOG_COMPONENT_TRACE("parsed path: {}", path.c_str());
+            return {{getVehicleId(), component_name}, state_name};
+        } else {
+            // 两个点号，格式为 "VehicleId.Component.state" 或 "vehicleN.Component.state"
+            if (first_dot == 0 || second_dot == first_dot + 1 || second_dot == path.length() - 1) {
+                throw std::runtime_error("Invalid state path format: '" + path + 
+                                        "'. Expected 'VehicleId.Component.state' format");
+            }
+            
+            std::string vehicle_id_str = path.substr(0, first_dot);
+            std::string component_name = path.substr(first_dot + 1, second_dot - first_dot - 1);
+            std::string state_name = path.substr(second_dot + 1);
+            
+            // 解析飞行器ID - 支持 "vehicleN" 格式
+            VehicleId target_vehicle_id;
+            try {
+                if (vehicle_id_str.substr(0, 7) == "vehicle") {
+                    // 处理 "vehicleN" 格式
+                    std::string id_part = vehicle_id_str.substr(7);
+                    target_vehicle_id = static_cast<VehicleId>(std::stoi(id_part));
+                } else {
+                    // 处理纯数字格式
+                    target_vehicle_id = static_cast<VehicleId>(std::stoi(vehicle_id_str));
+                }
+            } catch (const std::exception& e) {
+                throw std::runtime_error("Invalid vehicle ID in path: '" + path + 
+                                        "'. Vehicle ID must be a valid integer or 'vehicleN' format");
+            }
+            
+            LOG_COMPONENT_TRACE("parsed cross-vehicle path: {}", path.c_str());
+            return {{target_vehicle_id, component_name}, state_name};
         }
-        
-        std::string component_name = path.substr(0, dot_pos);
-        std::string state_name = path.substr(dot_pos + 1);
-        
-        LOG_COMPONENT_TRACE("parsed path: {}", path.c_str());
-        return {{getVehicleId(), component_name}, state_name};
     }
 
     VehicleId vehicleId_;
