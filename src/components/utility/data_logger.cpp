@@ -9,6 +9,7 @@
 #include "gnc/core/state_manager.hpp"
 #include <regex>
 #include <stdexcept>
+#include <any>
 
 using namespace gnc::states;
 
@@ -17,7 +18,21 @@ namespace gnc {
 namespace components {
 namespace utility {
 
+// ============================================================================
+// FileWriter Factory Implementation
+// ============================================================================
 
+std::unique_ptr<FileWriter> createFileWriter(const std::string& format) {
+    if (format == "csv") {
+        // TODO: Implement CSVWriter in task 5
+        throw std::runtime_error("CSV writer not yet implemented");
+    } else if (format == "hdf5") {
+        // TODO: Implement HDF5Writer in task 6
+        throw std::runtime_error("HDF5 writer not yet implemented");
+    } else {
+        throw std::invalid_argument("Unsupported file format: " + format + ". Supported formats: csv, hdf5");
+    }
+}
 
 // ============================================================================
 // DataLogger Implementation
@@ -42,7 +57,16 @@ void DataLogger::initialize() {
         // Discover and select states based on configuration
         discoverAndSelectStates();
 
-        // TODO: Create and initialize file writer (Task 4-6)
+        // Create file writer using factory (Task 4)
+        try {
+            file_writer_ = createFileWriter(output_format_);
+            LOG_COMPONENT_DEBUG("Created {} file writer", output_format_);
+        } catch (const std::exception& e) {
+            LOG_COMPONENT_ERROR("Failed to create file writer for format '{}': {}", output_format_, e.what());
+            throw;
+        }
+
+        // TODO: Initialize file writer (Task 5-6)
         // TODO: Set up metadata collection (Task 7)
 
         initialized_ = true;
@@ -66,7 +90,16 @@ void DataLogger::finalize() {
     try {
         LOG_COMPONENT_INFO("Finalizing DataLogger component");
 
-        // TODO: Flush data buffers and close file handles (Task 10)
+        // Finalize file writer if it exists
+        if (file_writer_) {
+            try {
+                file_writer_->finalize();
+                LOG_COMPONENT_DEBUG("File writer finalized successfully");
+            } catch (const std::exception& e) {
+                LOG_COMPONENT_ERROR("Error finalizing file writer: {}", e.what());
+            }
+            file_writer_.reset();
+        }
 
         initialized_ = false;
         LOG_COMPONENT_INFO("DataLogger finalization completed");

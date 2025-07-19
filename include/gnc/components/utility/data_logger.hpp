@@ -36,10 +36,61 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <any>
 
 namespace gnc {
 namespace components {
 namespace utility {
+
+/**
+ * @brief Abstract interface for file writers
+ * 
+ * @details FileWriter provides a common interface for different output formats.
+ * This allows the DataLogger to support multiple file formats (HDF5, CSV) 
+ * through a unified interface using the Strategy pattern.
+ */
+class FileWriter {
+public:
+    /**
+     * @brief Virtual destructor for proper cleanup
+     */
+    virtual ~FileWriter() = default;
+
+    /**
+     * @brief Initialize the file writer
+     * @param file_path Path to the output file
+     * @param states List of states that will be recorded
+     * @param include_metadata Whether to include metadata in the file
+     * @throws std::runtime_error if initialization fails
+     */
+    virtual void initialize(const std::string& file_path, 
+                          const std::vector<gnc::states::StateId>& states,
+                          bool include_metadata) = 0;
+
+    /**
+     * @brief Write a single data point to the file
+     * @param time Current simulation time
+     * @param values Vector of state values corresponding to the states list from initialize()
+     * @throws std::runtime_error if write operation fails
+     */
+    virtual void writeDataPoint(double time, 
+                               const std::vector<std::any>& values) = 0;
+
+    /**
+     * @brief Finalize and close the file
+     * @details Flushes any remaining data and properly closes file handles
+     * @throws std::runtime_error if finalization fails
+     */
+    virtual void finalize() = 0;
+};
+
+/**
+ * @brief Factory function to create appropriate file writer based on format
+ * @param format Output format ("hdf5" or "csv")
+ * @return Unique pointer to the created file writer
+ * @throws std::invalid_argument if format is not supported
+ */
+std::unique_ptr<FileWriter> createFileWriter(const std::string& format);
 
 /**
  * @brief Configuration structure for state selectors
@@ -162,6 +213,7 @@ private:
     
     // Runtime state
     std::vector<gnc::states::StateId> states_to_log_;  ///< Cached list of states to record
+    std::unique_ptr<FileWriter> file_writer_;          ///< File writer instance
     double last_log_time_;            ///< Last time data was logged
     bool initialized_;                ///< Whether component has been initialized
 
