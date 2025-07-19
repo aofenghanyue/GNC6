@@ -180,6 +180,51 @@ public:
         }
     }
 
+    /**
+     * @brief 获取所有已注册的组件ID列表
+     * @return 所有已注册组件的ID向量
+     */
+    std::vector<ComponentId> getAllComponentIds() const {
+        std::vector<ComponentId> component_ids;
+        component_ids.reserve(components_.size());
+        for (const auto& [id, component] : components_) {
+            component_ids.push_back(id);
+        }
+        return component_ids;
+    }
+
+    /**
+     * @brief 获取指定组件的所有输出状态ID列表
+     * @param component_id 组件ID
+     * @return 该组件的所有输出状态ID向量
+     */
+    std::vector<StateId> getComponentOutputStates(const ComponentId& component_id) const {
+        std::vector<StateId> output_states;
+        auto it = components_.find(component_id);
+        if (it != components_.end()) {
+            auto interface = it->second->getInterface();
+            for (const auto& output : interface.getOutputs()) {
+                output_states.push_back(StateId{component_id, output.name});
+            }
+        }
+        return output_states;
+    }
+
+    /**
+     * @brief 获取所有已注册的输出状态ID列表
+     * @return 所有输出状态ID向量
+     */
+    std::vector<StateId> getAllOutputStates() const {
+        std::vector<StateId> all_states;
+        for (const auto& [component_id, component] : components_) {
+            auto interface = component->getInterface();
+            for (const auto& output : interface.getOutputs()) {
+                all_states.push_back(StateId{component_id, output.name});
+            }
+        }
+        return all_states;
+    }
+
 protected:
     const std::any& getStateImpl(const StateId& id, const std::string& type) const override {
         if (states_.count(id)) {

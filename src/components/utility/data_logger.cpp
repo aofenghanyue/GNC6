@@ -6,8 +6,11 @@
 #include "gnc/components/utility/data_logger.hpp"
 #include "gnc/components/utility/simple_logger.hpp"
 #include "gnc/components/utility/config_manager.hpp"
+#include "gnc/core/state_manager.hpp"
 #include <regex>
 #include <stdexcept>
+
+using namespace gnc::states;
 
 
 namespace gnc {
@@ -233,11 +236,48 @@ void DataLogger::loadConfiguration() {
 void DataLogger::discoverAndSelectStates() {
     LOG_COMPONENT_DEBUG("Discovering and selecting states for logging");
 
-    // TODO: Query StateManager and apply regex matching (Task 3)
-    // For now, create empty list
     states_to_log_.clear();
     
-    LOG_COMPONENT_DEBUG("State discovery completed, selected {} states", states_to_log_.size());
+    // Get access to the StateManager through the state access interface
+    IStateAccess* state_access = getStateAccess();
+    if (!state_access) {
+        LOG_COMPONENT_ERROR("StateManager not available for state discovery");
+        return;
+    }
+    
+    // Cast to StateManager to access the new methods
+    gnc::StateManager* state_manager = dynamic_cast<gnc::StateManager*>(state_access);
+    if (!state_manager) {
+        LOG_COMPONENT_ERROR("Failed to access StateManager for component discovery");
+        return;
+    }
+    
+    // Get all available output states from StateManager
+    std::vector<StateId> all_available_states = state_manager->getAllOutputStates();
+    LOG_COMPONENT_DEBUG("Found {} total available output states", all_available_states.size());
+    
+    // Process each selector
+    LOG_COMPONENT_DEBUG("Processing {} selectors", selectors_.size());
+    
+    for (const auto& selector : selectors_) {
+        if (!selector.state.empty()) {
+            // Handle specific state selector
+            processSpecificStateSelector(selector, all_available_states);
+        } else if (!selector.component_regex.empty()) {
+            // Handle regex-based selector
+            processRegexSelector(selector, all_available_states);
+        }
+    }
+    
+    LOG_COMPONENT_INFO("State discovery completed, selected {} states for logging", states_to_log_.size());
+    
+    // Log selected states for debugging
+    for (const auto& state_id : states_to_log_) {
+        LOG_COMPONENT_DEBUG("Selected state: {}.{}.{}", 
+                           state_id.component.vehicleId, 
+                           state_id.component.name, 
+                           state_id.name);
+    }
 }
 
 bool DataLogger::shouldLog(double current_time) const {
@@ -250,6 +290,126 @@ bool DataLogger::shouldLog(double current_time) const {
     double time_interval = 1.0 / log_frequency_hz_;
     return (current_time - last_log_time_) >= time_interval;
 }
+
+void DataLogger::processSpecificStateSelector(const StateSelector& selector, const std::vector<StateId>& all_available_states) {
+    LOG_COMPONENT_DEBUG("Processing specific state selector: {}", selector.state);
+    
+    try {
+        // Parse the state string to extract component and state names
+        // Format can be: "state", "Component.state", or "VehicleId.Component.state"
+        StateId target_state_id;
+        
+        size_t first_dot = selector.state.find('.');
+        if (first_dot == std::string::npos) {
+            // No dot, assume it's a state from self on this vehicle
+            target_state_id = {{getVehicleId(), getName()}, selector.state};
+        } else {
+            size_t second_dot = selector.state.find('.', first_dot + 1);
+            if (second_dot == std::string::npos) {
+                // One dot: "Component.state" format
+                std::string component_name = selector.state.substr(0, first_dot);
+                std::string state_name = selector.state.substr(first_dot + 1);
+                
+                // Use the same vehicle ID as this DataLogger component
+                target_state_id = {{getVehicleId(), component_name}, state_name};
+            } else {
+                // Two dots: "VehicleId.Component.state" format
+                std::string vehicle_id_str = selector.state.substr(0, first_dot);
+                std::string component_name = selector.state.substr(first_dot + 1, second_dot - first_dot - 1);
+                std::string state_name = selector.state.substr(second_dot + 1);
+                
+                // Parse vehicle ID
+                VehicleId vehicle_id;
+                try {
+                    if (vehicle_id_str.substr(0, 7) == "vehicle") {
+                        vehicle_id = static_cast<VehicleId>(std::stoi(vehicle_id_str.substr(7)));
+                    } else {
+                        vehicle_id = static_cast<VehicleId>(std::stoi(vehicle_id_str));
+                    }
+                } catch (const std::exception& e) {
+                    LOG_COMPONENT_WARN("Invalid vehicle ID in state selector '{}', using current vehicle", selector.state);
+                    vehicle_id = getVehicleId();
+                }
+                
+                target_state_id = {{vehicle_id, component_name}, state_name};
+            }
+        }
+        
+        // Check if the target state exists in the available states
+        bool found = false;
+        for (const auto& available_state : all_available_states) {
+            if (available_state == target_state_id) {
+                states_to_log_.push_back(target_state_id);
+                found = true;
+                LOG_COMPONENT_DEBUG("Added specific state: {}.{}.{}", 
+                                   target_state_id.component.vehicleId, 
+                                   target_state_id.component.name, 
+                                   target_state_id.name);
+                break;
+            }
+        }
+        
+        if (!found) {
+            LOG_COMPONENT_WARN("Specific state '{}' not found in available states", selector.state);
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_COMPONENT_ERROR("Error processing specific state selector '{}': {}", selector.state, e.what());
+    }
+}
+
+void DataLogger::processRegexSelector(const StateSelector& selector, const std::vector<StateId>& all_available_states) {
+    LOG_COMPONENT_DEBUG("Processing regex selector - Component: '{}', State: '{}', Exclude: '{}'", 
+                        selector.component_regex, selector.state_regex, selector.exclude_state_regex);
+    
+    try {
+        // Compile regex patterns
+        std::regex component_pattern(selector.component_regex);
+        std::regex state_pattern(selector.state_regex);
+        std::regex exclude_pattern;
+        bool has_exclude = !selector.exclude_state_regex.empty();
+        if (has_exclude) {
+            exclude_pattern = std::regex(selector.exclude_state_regex);
+        }
+        
+        int matched_count = 0;
+        for (const auto& state_id : all_available_states) {
+            // Check if component name matches
+            if (!std::regex_match(state_id.component.name, component_pattern)) {
+                continue;
+            }
+            
+            // Check if state name matches
+            if (!std::regex_match(state_id.name, state_pattern)) {
+                continue;
+            }
+            
+            // Check exclusion pattern
+            if (has_exclude && std::regex_match(state_id.name, exclude_pattern)) {
+                LOG_COMPONENT_DEBUG("Excluded state by exclude pattern: {}.{}", 
+                                   state_id.component.name, state_id.name);
+                continue;
+            }
+            
+            // Add to selected states
+            states_to_log_.push_back(state_id);
+            matched_count++;
+            LOG_COMPONENT_DEBUG("Matched state: {}.{}.{}", 
+                               state_id.component.vehicleId, 
+                               state_id.component.name, 
+                               state_id.name);
+        }
+        
+        LOG_COMPONENT_DEBUG("Regex selector matched {} states", matched_count);
+        
+    } catch (const std::regex_error& e) {
+        LOG_COMPONENT_ERROR("Regex error in selector: {}", e.what());
+    } catch (const std::exception& e) {
+        LOG_COMPONENT_ERROR("Error processing regex selector: {}", e.what());
+    }
+}
+
+
 
 } // namespace utility
 } // namespace components

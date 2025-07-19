@@ -183,6 +183,20 @@ private:
      * @return true if data should be logged
      */
     bool shouldLog(double current_time) const;
+
+    /**
+     * @brief Process specific state selector (e.g., "Component.state")
+     * @param selector State selector configuration
+     * @param all_available_states List of all available states from StateManager
+     */
+    void processSpecificStateSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states);
+
+    /**
+     * @brief Process regex-based state selector
+     * @param selector State selector configuration with regex patterns
+     * @param all_available_states List of all available states from StateManager
+     */
+    void processRegexSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states);
 };
 // Register the DataLogger component with the factory
 static gnc::ComponentRegistrar<DataLogger> data_logger_registrar("DataLogger");

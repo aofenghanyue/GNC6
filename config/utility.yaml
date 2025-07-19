@@ -12,7 +12,7 @@ utility:
     log_metadata: true                # Include git hash, config snapshot
     selectors:                        # State selection rules
       - state: "vehicle0.TimingManager.timing_current_s"  # Cross-vehicle specific state (vehicle 0)
-      - state: "vehicle1.Dynamics.position_truth_x"       # Cross-vehicle specific state (vehicle 1)
+      - state: "vehicle1.Dynamics.position_truth_m"       # Cross-vehicle specific state (vehicle 1)
       - state: "TimingManager.timing_current_s"          # Local vehicle specific state
       - component_regex: ".*Guidance.*"            # Component pattern
         state_regex: ".*"                         # All states in component
