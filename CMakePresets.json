@@ -3,7 +3,7 @@
   "configurePresets": [
     {
       "name": "msvc-debug",
-      "displayName": "MSVC Debug (Ninja)",
+      "displayName": "MSVC Debug",
       "description": "Build using MSVC compiler with VS generator",
 
       "binaryDir": "${sourceDir}/build/debug",
@@ -22,11 +22,11 @@
     },
     {
       "name": "msvc-release",
-      "displayName": "MSVC Release (Ninja)",
-      "description": "Build using MSVC compiler with Ninja generator in Release mode",
+      "displayName": "MSVC Release",
+      "description": "Build using MSVC compiler with VS generator in Release mode",
       "binaryDir": "${sourceDir}/build/release",
       "toolchainFile": "C:/Users/17721/Documents/Soft/vcpkg/scripts/buildsystems/vcpkg.cmake",
-      
+      "generator": "Visual Studio 17 2022",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": "OFF",
