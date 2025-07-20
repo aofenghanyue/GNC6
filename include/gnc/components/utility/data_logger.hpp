@@ -38,6 +38,7 @@
 #include <memory>
 #include <any>
 #include <unordered_set>
+#include <nlohmann/json.hpp>
 
 namespace gnc {
 namespace components {
@@ -62,11 +63,13 @@ public:
      * @param file_path Path to the output file
      * @param states List of states that will be recorded
      * @param include_metadata Whether to include metadata in the file
+     * @param metadata_json JSON object containing metadata (optional)
      * @throws std::runtime_error if initialization fails
      */
     virtual void initialize(const std::string& file_path, 
                           const std::vector<gnc::states::StateId>& states,
-                          bool include_metadata) = 0;
+                          bool include_metadata,
+                          const nlohmann::json& metadata_json = nlohmann::json()) = 0;
 
     /**
      * @brief Write a single data point to the file
@@ -251,6 +254,12 @@ private:
      * @param unique_states Set to store unique selected states
      */
     void processRegexSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states, std::unordered_set<gnc::states::StateId>& unique_states);
+
+    /**
+     * @brief Collect metadata for logging
+     * @return JSON object containing metadata (git hash, config snapshot, timestamp)
+     */
+    nlohmann::json collectMetadata();
 };
 // Register the DataLogger component with the factory
 static gnc::ComponentRegistrar<DataLogger> data_logger_registrar("DataLogger");

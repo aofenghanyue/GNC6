@@ -75,7 +75,8 @@ bool HDF5Writer::isHDF5Available() {
 
 void HDF5Writer::initialize(const std::string& file_path, 
                            const std::vector<gnc::states::StateId>& states,
-                           bool include_metadata) {
+                           bool include_metadata,
+                           const nlohmann::json& metadata_json) {
 #ifndef HDF5_AVAILABLE
     throw std::runtime_error("HDF5 library is not available. Please install HDF5 development libraries and recompile, or use CSV format instead.");
 #else
@@ -88,6 +89,7 @@ void HDF5Writer::initialize(const std::string& file_path,
     }
 
     states_ = states;
+    metadata_ = metadata_json;
     
     try {
         // Generate unique filename with timestamp
@@ -259,51 +261,68 @@ void HDF5Writer::finalize() {
 void HDF5Writer::writeMetadata() {
 #ifdef HDF5_AVAILABLE
     try {
-        // Write creation timestamp
-        auto now = std::chrono::system_clock::now();
-        auto time_t = std::chrono::system_clock::to_time_t(now);
-        std::stringstream timestamp_ss;
-        timestamp_ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
-        
         DataSpace scalar_space(H5S_SCALAR);
-        StrType str_type(PredType::C_S1, timestamp_ss.str().length() + 1);
-        Attribute timestamp_attr = impl_->file->createAttribute("creation_timestamp", str_type, scalar_space);
-        timestamp_attr.write(str_type, timestamp_ss.str().c_str());
         
-        // Try to get Git hash
-        try {
-            std::string git_command = "git rev-parse HEAD 2>/dev/null";
-            FILE* pipe = popen(git_command.c_str(), "r");
-            if (pipe) {
-                char buffer[128];
-                std::string git_hash;
-                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                    git_hash += buffer;
-                }
-                pclose(pipe);
-                
-                // Remove trailing newline
-                if (!git_hash.empty() && git_hash.back() == '\n') {
-                    git_hash.pop_back();
-                }
-                
-                if (!git_hash.empty() && git_hash.length() >= 7) {
+        // Write metadata from collected data
+        if (!metadata_.empty()) {
+            // Write creation timestamp
+            if (metadata_.contains("creation_timestamp")) {
+                std::string timestamp = metadata_["creation_timestamp"].get<std::string>();
+                StrType str_type(PredType::C_S1, timestamp.length() + 1);
+                Attribute timestamp_attr = impl_->file->createAttribute("creation_timestamp", str_type, scalar_space);
+                timestamp_attr.write(str_type, timestamp.c_str());
+            }
+            
+            // Write Git hash
+            if (metadata_.contains("git_hash")) {
+                std::string git_hash = metadata_["git_hash"].get<std::string>();
+                if (git_hash != "not_available" && git_hash != "error") {
                     StrType git_str_type(PredType::C_S1, git_hash.length() + 1);
                     Attribute git_attr = impl_->file->createAttribute("git_hash", git_str_type, scalar_space);
                     git_attr.write(git_str_type, git_hash.c_str());
                     LOG_DEBUG("Added Git hash to metadata: {}", git_hash);
                 }
             }
-        } catch (const std::exception& e) {
-            LOG_WARN("Could not retrieve Git hash: {}", e.what());
+            
+            // Write framework version
+            if (metadata_.contains("framework_version")) {
+                std::string framework_version = metadata_["framework_version"].get<std::string>();
+                StrType framework_str_type(PredType::C_S1, framework_version.length() + 1);
+                Attribute framework_attr = impl_->file->createAttribute("framework_version", framework_str_type, scalar_space);
+                framework_attr.write(framework_str_type, framework_version.c_str());
+            }
+            
+            if (metadata_.contains("datalogger_version")) {
+                std::string datalogger_version = metadata_["datalogger_version"].get<std::string>();
+                StrType datalogger_str_type(PredType::C_S1, datalogger_version.length() + 1);
+                Attribute datalogger_attr = impl_->file->createAttribute("datalogger_version", datalogger_str_type, scalar_space);
+                datalogger_attr.write(datalogger_str_type, datalogger_version.c_str());
+            }
+            
+            // Write config snapshot (as JSON string)
+            if (metadata_.contains("config_snapshot") && metadata_["config_snapshot"].is_object()) {
+                std::string config_json = metadata_["config_snapshot"].dump(-1);  // Compact JSON
+                StrType config_str_type(PredType::C_S1, config_json.length() + 1);
+                Attribute config_attr = impl_->file->createAttribute("config_snapshot", config_str_type, scalar_space);
+                config_attr.write(config_str_type, config_json.c_str());
+                LOG_DEBUG("Added configuration snapshot to metadata ({} bytes)", config_json.length());
+            }
+        } else {
+            // Fallback to basic timestamp if no metadata provided
+            auto now = std::chrono::system_clock::now();
+            auto time_t = std::chrono::system_clock::to_time_t(now);
+            std::stringstream timestamp_ss;
+            timestamp_ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
+            
+            StrType str_type(PredType::C_S1, timestamp_ss.str().length() + 1);
+            Attribute timestamp_attr = impl_->file->createAttribute("creation_timestamp", str_type, scalar_space);
+            timestamp_attr.write(str_type, timestamp_ss.str().c_str());
+            
+            std::string no_metadata = "metadata_not_collected";
+            StrType no_meta_str_type(PredType::C_S1, no_metadata.length() + 1);
+            Attribute no_meta_attr = impl_->file->createAttribute("metadata_status", no_meta_str_type, scalar_space);
+            no_meta_attr.write(no_meta_str_type, no_metadata.c_str());
         }
-        
-        // Add configuration snapshot placeholder
-        // TODO: Implement config snapshot serialization in task 7
-        std::string config_placeholder = "Configuration snapshot not yet implemented";
-        StrType config_str_type(PredType::C_S1, config_placeholder.length() + 1);
-        Attribute config_attr = impl_->file->createAttribute("config_snapshot", config_str_type, scalar_space);
-        config_attr.write(config_str_type, config_placeholder.c_str());
         
         LOG_DEBUG("Metadata written to HDF5 file");
         

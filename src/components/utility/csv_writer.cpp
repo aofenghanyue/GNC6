@@ -18,14 +18,16 @@ namespace utility {
 
 void CSVWriter::initialize(const std::string& file_path, 
                           const std::vector<gnc::states::StateId>& states,
-                          bool include_metadata) {
+                          bool include_metadata,
+                          const nlohmann::json& metadata_json) {
     if (initialized_) {
         throw std::runtime_error("CSVWriter already initialized");
     }
 
     try {
-        // Store states for later use
+        // Store states and metadata for later use
         states_ = states;
+        metadata_ = metadata_json;
 
         // Generate unique filename with timestamp
         std::string unique_file_path = generateUniqueFilename(file_path);
@@ -128,43 +130,54 @@ void CSVWriter::finalize() {
 }
 
 void CSVWriter::writeMetadata() {
-    // Write creation timestamp
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto tm = *std::localtime(&time_t);
-    
-    file_stream_ << "# creation_timestamp: " 
-                << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S") << "\n";
-
-    // Try to get Git hash
     try {
-        std::string git_command = "git rev-parse HEAD 2>nul";
-        FILE* pipe = _popen(git_command.c_str(), "r");
-        if (pipe) {
-            char buffer[128];
-            std::string git_hash;
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                git_hash += buffer;
-            }
-            _pclose(pipe);
-            
-            // Remove newline if present
-            if (!git_hash.empty() && git_hash.back() == '\n') {
-                git_hash.pop_back();
+        // Write metadata from collected data
+        if (!metadata_.empty()) {
+            // Write creation timestamp
+            if (metadata_.contains("creation_timestamp")) {
+                file_stream_ << "# creation_timestamp: " << metadata_["creation_timestamp"].get<std::string>() << "\n";
             }
             
-            if (!git_hash.empty() && git_hash.find("fatal") == std::string::npos) {
-                file_stream_ << "# git_hash: " << git_hash << "\n";
+            // Write Git hash
+            if (metadata_.contains("git_hash")) {
+                std::string git_hash = metadata_["git_hash"].get<std::string>();
+                if (git_hash != "not_available" && git_hash != "error") {
+                    file_stream_ << "# git_hash: " << git_hash << "\n";
+                }
             }
+            
+            // Write framework version
+            if (metadata_.contains("framework_version")) {
+                file_stream_ << "# framework_version: " << metadata_["framework_version"].get<std::string>() << "\n";
+            }
+            
+            if (metadata_.contains("datalogger_version")) {
+                file_stream_ << "# datalogger_version: " << metadata_["datalogger_version"].get<std::string>() << "\n";
+            }
+            
+            // Write config snapshot (compact format for CSV comments)
+            if (metadata_.contains("config_snapshot") && metadata_["config_snapshot"].is_object()) {
+                file_stream_ << "# config_snapshot: " << metadata_["config_snapshot"].dump(-1) << "\n";
+            }
+        } else {
+            // Fallback to basic timestamp if no metadata provided
+            auto now = std::chrono::system_clock::now();
+            auto time_t = std::chrono::system_clock::to_time_t(now);
+            auto tm = *std::localtime(&time_t);
+            
+            file_stream_ << "# creation_timestamp: " 
+                        << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S") << "\n";
+            file_stream_ << "# metadata: not_collected\n";
         }
+        
+        file_stream_ << "#\n";  // Empty comment line for separation
+        
     } catch (const std::exception& e) {
-        LOG_DEBUG("Could not retrieve Git hash: {}", e.what());
+        LOG_DEBUG("Error writing metadata to CSV: {}", e.what());
+        // Write minimal fallback metadata
+        file_stream_ << "# metadata_error: " << e.what() << "\n";
+        file_stream_ << "#\n";
     }
-
-    // TODO: Add config snapshot when metadata collection is implemented (Task 7)
-    file_stream_ << "# config_snapshot: [not yet implemented]\n";
-    
-    file_stream_ << "#\n";  // Empty comment line for separation
 }
 
 void CSVWriter::writeHeader() {

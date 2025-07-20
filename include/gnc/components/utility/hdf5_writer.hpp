@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <nlohmann/json.hpp>
 
 // Forward declarations to avoid requiring HDF5 headers when HDF5 is not available
 namespace H5 {
@@ -51,11 +52,13 @@ public:
      * @param file_path Path to the output HDF5 file
      * @param states List of states that will be recorded
      * @param include_metadata Whether to include metadata in the file
+     * @param metadata_json JSON object containing metadata (optional)
      * @throws std::runtime_error if initialization fails or HDF5 is not available
      */
     void initialize(const std::string& file_path, 
                    const std::vector<gnc::states::StateId>& states,
-                   bool include_metadata) override;
+                   bool include_metadata,
+                   const nlohmann::json& metadata_json = nlohmann::json()) override;
 
     /**
      * @brief Write a single data point to the HDF5 file
@@ -87,6 +90,7 @@ private:
     bool initialized_;                      ///< Whether writer has been initialized
     std::vector<gnc::states::StateId> states_;  ///< Cached states list
     size_t current_row_;                    ///< Current row index for data writing
+    nlohmann::json metadata_;              ///< Cached metadata for writing
     
     /**
      * @brief Write metadata as root attributes

@@ -69,11 +69,28 @@ TEST_F(HDF5WriterTest, BasicInitializationWithHDF5) {
     // Should not throw when HDF5 is available
     EXPECT_NO_THROW(writer.initialize(test_file_path_, states, true));
     
-    // File should be created
-    EXPECT_TRUE(std::filesystem::exists(test_file_path_));
-    
     // Should be able to finalize
     EXPECT_NO_THROW(writer.finalize());
+    
+    // File should be created (with unique timestamp suffix)
+    // Check if any file starting with "test_output" exists
+    bool file_created = false;
+    for (const auto& entry : std::filesystem::directory_iterator(".")) {
+        if (entry.is_regular_file()) {
+            std::string filename = entry.path().filename().string();
+            if (filename.find("test_output") == 0 && filename.find(".h5") != std::string::npos) {
+                file_created = true;
+                // Clean up the generated file after writer is finalized
+                try {
+                    std::filesystem::remove(entry.path());
+                } catch (const std::exception& e) {
+                    // If we can't remove it, that's okay for the test
+                }
+                break;
+            }
+        }
+    }
+    EXPECT_TRUE(file_created);
 }
 
 TEST_F(HDF5WriterTest, WriteDataPointWithHDF5) {
@@ -100,9 +117,29 @@ TEST_F(HDF5WriterTest, WriteDataPointWithHDF5) {
     
     EXPECT_NO_THROW(writer.finalize());
     
-    // File should exist and have non-zero size
-    EXPECT_TRUE(std::filesystem::exists(test_file_path_));
-    EXPECT_GT(std::filesystem::file_size(test_file_path_), 0);
+    // File should exist and have non-zero size (with unique timestamp suffix)
+    bool file_created = false;
+    std::filesystem::path created_file_path;
+    for (const auto& entry : std::filesystem::directory_iterator(".")) {
+        if (entry.is_regular_file()) {
+            std::string filename = entry.path().filename().string();
+            if (filename.find("test_output") == 0 && filename.find(".h5") != std::string::npos) {
+                file_created = true;
+                created_file_path = entry.path();
+                break;
+            }
+        }
+    }
+    EXPECT_TRUE(file_created);
+    if (file_created) {
+        EXPECT_GT(std::filesystem::file_size(created_file_path), 0);
+        // Clean up the generated file after writer is finalized
+        try {
+            std::filesystem::remove(created_file_path);
+        } catch (const std::exception& e) {
+            // If we can't remove it, that's okay for the test
+        }
+    }
 }
 
 TEST_F(HDF5WriterTest, ErrorHandling) {

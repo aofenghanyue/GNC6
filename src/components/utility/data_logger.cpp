@@ -13,6 +13,19 @@
 #include <stdexcept>
 #include <any>
 #include <unordered_set>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <cstdio>
+
+// Platform-specific includes for popen/pclose
+#ifdef _WIN32
+    #include <io.h>
+    #define popen _popen
+    #define pclose _pclose
+#else
+    #include <unistd.h>
+#endif
 
 using namespace gnc::states;
 
@@ -71,16 +84,20 @@ void DataLogger::initialize() {
             throw;
         }
 
+        // Collect metadata if enabled (Task 7)
+        nlohmann::json metadata_json;
+        if (log_metadata_) {
+            metadata_json = collectMetadata();
+        }
+
         // Initialize file writer
         try {
-            file_writer_->initialize(file_path_, states_to_log_, log_metadata_);
+            file_writer_->initialize(file_path_, states_to_log_, log_metadata_, metadata_json);
             LOG_COMPONENT_DEBUG("File writer initialized successfully");
         } catch (const std::exception& e) {
             LOG_COMPONENT_ERROR("Failed to initialize file writer: {}", e.what());
             throw;
         }
-
-        // TODO: Set up metadata collection (Task 7)
 
         initialized_ = true;
         LOG_COMPONENT_INFO("DataLogger initialization completed successfully");
@@ -459,6 +476,132 @@ void DataLogger::processRegexSelector(const StateSelector& selector, const std::
     } catch (const std::exception& e) {
         LOG_COMPONENT_ERROR("Error processing regex selector: {}", e.what());
     }
+}
+
+nlohmann::json DataLogger::collectMetadata() {
+    nlohmann::json metadata;
+    
+    try {
+        LOG_COMPONENT_DEBUG("Collecting metadata for DataLogger");
+        
+        // 1. Add timestamp generation for file creation time
+        auto now = std::chrono::system_clock::now();
+        auto time_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream timestamp_ss;
+        timestamp_ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
+        metadata["creation_timestamp"] = timestamp_ss.str();
+        LOG_COMPONENT_DEBUG("Added creation timestamp: {}", timestamp_ss.str());
+        
+        // 2. Add Git hash extraction using system command "git rev-parse HEAD"
+        try {
+#ifdef _WIN32
+            std::string git_command = "git rev-parse HEAD 2>nul";
+#else
+            std::string git_command = "git rev-parse HEAD 2>/dev/null";
+#endif
+            
+            FILE* pipe = nullptr;
+#ifdef _WIN32
+            pipe = _popen(git_command.c_str(), "r");
+#else
+            pipe = popen(git_command.c_str(), "r");
+#endif
+            
+            if (pipe) {
+                char buffer[128];
+                std::string git_hash;
+                while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                    git_hash += buffer;
+                }
+                
+#ifdef _WIN32
+                _pclose(pipe);
+#else
+                pclose(pipe);
+#endif
+                
+                // Remove trailing newline if present
+                if (!git_hash.empty() && git_hash.back() == '\n') {
+                    git_hash.pop_back();
+                }
+                
+                // Validate git hash (should be 40 characters for full hash)
+                if (!git_hash.empty() && git_hash.length() >= 7 && 
+                    git_hash.find("fatal") == std::string::npos &&
+                    git_hash.find("not a git repository") == std::string::npos) {
+                    metadata["git_hash"] = git_hash;
+                    LOG_COMPONENT_DEBUG("Added Git hash: {}", git_hash);
+                } else {
+                    LOG_COMPONENT_DEBUG("Git hash not available or invalid");
+                    metadata["git_hash"] = "not_available";
+                }
+            } else {
+                LOG_COMPONENT_DEBUG("Failed to execute git command");
+                metadata["git_hash"] = "not_available";
+            }
+        } catch (const std::exception& e) {
+            LOG_COMPONENT_DEBUG("Could not retrieve Git hash: {}", e.what());
+            metadata["git_hash"] = "not_available";
+        }
+        
+        // 3. Serialize current configuration snapshot from ConfigManager
+        try {
+            auto& config_manager = ConfigManager::getInstance();
+            
+            // Create a comprehensive configuration snapshot
+            nlohmann::json config_snapshot;
+            
+            // Get all configuration types
+            std::vector<ConfigFileType> config_types = {
+                ConfigFileType::CORE,
+                ConfigFileType::DYNAMICS,
+                ConfigFileType::ENVIRONMENT,
+                ConfigFileType::EFFECTORS,
+                ConfigFileType::LOGIC,
+                ConfigFileType::SENSORS,
+                ConfigFileType::UTILITY
+            };
+            
+            for (auto config_type : config_types) {
+                try {
+                    std::string type_name = config_manager.configTypeToString(config_type);
+                    auto config = config_manager.getConfig(config_type);
+                    if (!config.empty()) {
+                        config_snapshot[type_name] = config;
+                    }
+                } catch (const std::exception& e) {
+                    LOG_COMPONENT_DEBUG("Could not get config for type: {}", e.what());
+                }
+            }
+            
+            if (!config_snapshot.empty()) {
+                metadata["config_snapshot"] = config_snapshot;
+                LOG_COMPONENT_DEBUG("Added configuration snapshot with {} config types", config_snapshot.size());
+            } else {
+                LOG_COMPONENT_DEBUG("Configuration snapshot is empty");
+                metadata["config_snapshot"] = "not_available";
+            }
+            
+        } catch (const std::exception& e) {
+            LOG_COMPONENT_DEBUG("Could not serialize configuration snapshot: {}", e.what());
+            metadata["config_snapshot"] = "not_available";
+        }
+        
+        // 4. Add additional metadata
+        metadata["datalogger_version"] = "1.0";
+        metadata["framework_version"] = "GNC Meta-Framework";
+        
+        LOG_COMPONENT_INFO("Metadata collection completed successfully");
+        
+    } catch (const std::exception& e) {
+        LOG_COMPONENT_ERROR("Error collecting metadata: {}", e.what());
+        // Return minimal metadata on error
+        metadata["creation_timestamp"] = "error";
+        metadata["git_hash"] = "error";
+        metadata["config_snapshot"] = "error";
+    }
+    
+    return metadata;
 }
 
 

@@ -8,6 +8,7 @@
 #include "data_logger.hpp"
 #include <fstream>
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace gnc {
 namespace components {
@@ -39,11 +40,13 @@ public:
      * @param file_path Path to the output CSV file
      * @param states List of states that will be recorded
      * @param include_metadata Whether to include metadata in the file
+     * @param metadata_json JSON object containing metadata (optional)
      * @throws std::runtime_error if initialization fails
      */
     void initialize(const std::string& file_path, 
                    const std::vector<gnc::states::StateId>& states,
-                   bool include_metadata) override;
+                   bool include_metadata,
+                   const nlohmann::json& metadata_json = nlohmann::json()) override;
 
     /**
      * @brief Write a single data point to the CSV file
@@ -66,6 +69,7 @@ private:
     std::vector<gnc::states::StateId> states_;           ///< Cached states list
     bool initialized_;                                    ///< Whether writer has been initialized
     bool header_written_;                                ///< Whether header row has been written
+    nlohmann::json metadata_;                            ///< Cached metadata for writing
 
     /**
      * @brief Write metadata as comments at the beginning of the file
