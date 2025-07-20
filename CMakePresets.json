@@ -4,15 +4,16 @@
     {
       "name": "msvc-debug",
       "displayName": "MSVC Debug (Ninja)",
-      "description": "Build using MSVC compiler with Ninja generator",
+      "description": "Build using MSVC compiler with VS generator",
 
       "binaryDir": "${sourceDir}/build/debug",
       "toolchainFile": "C:/Users/17721/Documents/Soft/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "generator": "Visual Studio 17 2022",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTING": "ON",
         "GNC_ENABLE_HDF5": "ON"
-      },
+        },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "hostOS": ["Windows"]

@@ -11,12 +11,7 @@
             "stopAtEntry": true, // 如果设为 true，程序会停在 main 函数的第一行
             "cwd": "${workspaceFolder}", // 设置工作目录为项目根目录
             "environment": [
-                {
-                    // 将 Conda 环境的 Library\bin 目录添加到 PATH 的最前面
-                    // 这样 Windows 加载器就能找到所有的 DLL 文件
-                    "name": "PATH",
-                    "value": "C:\\ProgramData\\anaconda3\\envs\\gnc-msvc-env\\Library\\bin;${env:PATH}"
-                }
+                
             ],
             "console": "integratedTerminal" // 在 VS Code 的集成终端中显示输出
         }

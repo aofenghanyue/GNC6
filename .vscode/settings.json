@@ -106,5 +106,6 @@
         "nonlinearoptimization": "cpp",
         "numericaldiff": "cpp",
         "polynomials": "cpp"
-    }
+    },
+    "python.terminal.activateEnvironment": false
 }
