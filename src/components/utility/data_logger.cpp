@@ -5,12 +5,14 @@
 
 #include "gnc/components/utility/data_logger.hpp"
 #include "gnc/components/utility/csv_writer.hpp"
+#include "gnc/components/utility/hdf5_writer.hpp"
 #include "gnc/components/utility/simple_logger.hpp"
 #include "gnc/components/utility/config_manager.hpp"
 #include "gnc/core/state_manager.hpp"
 #include <regex>
 #include <stdexcept>
 #include <any>
+#include <unordered_set>
 
 using namespace gnc::states;
 
@@ -27,8 +29,11 @@ std::unique_ptr<FileWriter> createFileWriter(const std::string& format) {
     if (format == "csv") {
         return std::make_unique<CSVWriter>();
     } else if (format == "hdf5") {
-        // TODO: Implement HDF5Writer in task 6
-        throw std::runtime_error("HDF5 writer not yet implemented");
+        if (!HDF5Writer::isHDF5Available()) {
+            LOG_WARN("HDF5 library not available, falling back to CSV format");
+            return std::make_unique<CSVWriter>();
+        }
+        return std::make_unique<HDF5Writer>();
     } else {
         throw std::invalid_argument("Unsupported file format: " + format + ". Supported formats: csv, hdf5");
     }
@@ -279,6 +284,9 @@ void DataLogger::discoverAndSelectStates() {
 
     states_to_log_.clear();
     
+    // Use an unordered_set to avoid duplicates during selection
+    std::unordered_set<StateId> unique_states;
+    
     // Get access to the StateManager through the state access interface
     IStateAccess* state_access = getStateAccess();
     if (!state_access) {
@@ -303,12 +311,15 @@ void DataLogger::discoverAndSelectStates() {
     for (const auto& selector : selectors_) {
         if (!selector.state.empty()) {
             // Handle specific state selector
-            processSpecificStateSelector(selector, all_available_states);
+            processSpecificStateSelector(selector, all_available_states, unique_states);
         } else if (!selector.component_regex.empty()) {
             // Handle regex-based selector
-            processRegexSelector(selector, all_available_states);
+            processRegexSelector(selector, all_available_states, unique_states);
         }
     }
+    
+    // Convert set to vector
+    states_to_log_.assign(unique_states.begin(), unique_states.end());
     
     LOG_COMPONENT_INFO("State discovery completed, selected {} states for logging", states_to_log_.size());
     
@@ -332,7 +343,7 @@ bool DataLogger::shouldLog(double current_time) const {
     return (current_time - last_log_time_) >= time_interval;
 }
 
-void DataLogger::processSpecificStateSelector(const StateSelector& selector, const std::vector<StateId>& all_available_states) {
+void DataLogger::processSpecificStateSelector(const StateSelector& selector, const std::vector<StateId>& all_available_states, std::unordered_set<StateId>& unique_states) {
     LOG_COMPONENT_DEBUG("Processing specific state selector: {}", selector.state);
     
     try {
@@ -380,7 +391,7 @@ void DataLogger::processSpecificStateSelector(const StateSelector& selector, con
         bool found = false;
         for (const auto& available_state : all_available_states) {
             if (available_state == target_state_id) {
-                states_to_log_.push_back(target_state_id);
+                unique_states.insert(target_state_id);
                 found = true;
                 LOG_COMPONENT_DEBUG("Added specific state: {}.{}.{}", 
                                    target_state_id.component.vehicleId, 
@@ -399,7 +410,7 @@ void DataLogger::processSpecificStateSelector(const StateSelector& selector, con
     }
 }
 
-void DataLogger::processRegexSelector(const StateSelector& selector, const std::vector<StateId>& all_available_states) {
+void DataLogger::processRegexSelector(const StateSelector& selector, const std::vector<StateId>& all_available_states, std::unordered_set<StateId>& unique_states) {
     LOG_COMPONENT_DEBUG("Processing regex selector - Component: '{}', State: '{}', Exclude: '{}'", 
                         selector.component_regex, selector.state_regex, selector.exclude_state_regex);
     
@@ -433,7 +444,7 @@ void DataLogger::processRegexSelector(const StateSelector& selector, const std::
             }
             
             // Add to selected states
-            states_to_log_.push_back(state_id);
+            unique_states.insert(state_id);
             matched_count++;
             LOG_COMPONENT_DEBUG("Matched state: {}.{}.{}", 
                                state_id.component.vehicleId, 

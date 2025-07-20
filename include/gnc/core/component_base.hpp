@@ -469,6 +469,7 @@ private:
                     target_vehicle_id = static_cast<VehicleId>(std::stoi(vehicle_id_str));
                 }
             } catch (const std::exception& e) {
+                (void) e;
                 throw std::runtime_error("Invalid vehicle ID in path: '" + path + 
                                         "'. Vehicle ID must be a valid integer or 'vehicleN' format");
             }

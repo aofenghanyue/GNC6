@@ -2,31 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug GNC Simulation",
-            "type": "cppdbg",
+            "name": "Debug gnc_sim (MSVC)",
+            "type": "cppvsdbg", // 使用 MSVC 的调试器
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\gnc_sim.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "gdb.exe",
-            "setupCommands": [
+            // 指向你的可执行文件的完整路径
+            "program": "${workspaceFolder}/build/debug/Debug/gnc_sim.exe",
+            "args": [], // 如果你的程序需要命令行参数，在这里添加
+            "stopAtEntry": true, // 如果设为 true，程序会停在 main 函数的第一行
+            "cwd": "${workspaceFolder}", // 设置工作目录为项目根目录
+            "environment": [
                 {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
+                    // 将 Conda 环境的 Library\bin 目录添加到 PATH 的最前面
+                    // 这样 Windows 加载器就能找到所有的 DLL 文件
+                    "name": "PATH",
+                    "value": "C:\\ProgramData\\anaconda3\\envs\\gnc-msvc-env\\Library\\bin;${env:PATH}"
                 }
             ],
-            "preLaunchTask": "build",
-            "internalConsoleOptions": "openOnSessionStart"
+            "console": "integratedTerminal" // 在 VS Code 的集成终端中显示输出
         }
     ]
 }

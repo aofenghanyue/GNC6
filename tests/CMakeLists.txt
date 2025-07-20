@@ -14,6 +14,7 @@ FetchContent_MakeAvailable(googletest)
 # 添加测试可执行文件
 add_executable(gnc_tests
     test_config_manager.cpp
+    test_hdf5_writer.cpp
 )
 
 # 链接库
@@ -27,6 +28,5 @@ target_include_directories(gnc_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
 
-# 发现测试
-include(GoogleTest)
-gtest_discover_tests(gnc_tests)
+# 手动添加测试以避免gtest_discover_tests的日志问题
+add_test(NAME gnc_tests COMMAND gnc_tests)

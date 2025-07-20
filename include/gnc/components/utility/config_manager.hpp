@@ -350,6 +350,14 @@ private:
     bool saveYamlFile(const nlohmann::json& config, const std::string& file_path) const;
 
     /**
+     * @brief 正确拼接路径，避免双斜杠问题
+     * @param dir 目录路径
+     * @param filename 文件名
+     * @return std::string 拼接后的完整路径
+     */
+    std::string joinPath(const std::string& dir, const std::string& filename) const;
+
+    /**
      * @brief 将YAML节点转换为JSON对象
      * @param yaml_node YAML节点
      * @return nlohmann::json JSON对象

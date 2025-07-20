@@ -5,6 +5,7 @@ utility:
     file_enabled: true
     file_path: "logs/gnc.log"
     level: "trace"
+    async_enabled: true  # 禁用异步日志以避免测试环境中的线程池问题
   data_logger:
     format: "hdf5"                    # "hdf5" or "csv"
     file_path: "logs/simulation_data.h5"  # Output file path

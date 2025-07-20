@@ -98,6 +98,13 @@ private:
      * @return Vector of string values for CSV columns
      */
     std::vector<std::string> valueToCSVStrings(const std::any& value);
+
+    /**
+     * @brief Generate unique filename with timestamp and optional run identifier
+     * @param base_path Base file path (e.g., "logs/simulation_data.csv")
+     * @return Unique file path with timestamp (e.g., "logs/simulation_data_20250719_205913_abc123.csv")
+     */
+    std::string generateUniqueFilename(const std::string& base_path);
 };
 
 } // namespace utility

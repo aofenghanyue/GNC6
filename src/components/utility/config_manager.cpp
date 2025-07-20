@@ -71,6 +71,15 @@ ConfigManager& ConfigManager::getInstance() {
     return instance;
 }
 
+std::string ConfigManager::joinPath(const std::string& dir, const std::string& filename) const {
+    std::string result = dir;
+    if (!result.empty() && result.back() != '/' && result.back() != '\\') {
+        result += "/";
+    }
+    result += filename;
+    return result;
+}
+
 bool ConfigManager::loadConfigs(const std::string& config_dir_path) {
     config_dir_path_ = config_dir_path;
     
@@ -100,7 +109,7 @@ bool ConfigManager::loadConfigs(const std::string& config_dir_path) {
         bool found = false;
         
         for (const auto& ext : extensions) {
-            std::string filepath = config_dir_path + "/" + base_name + ext;
+            std::string filepath = joinPath(config_dir_path, base_name + ext);
             if (std::filesystem::exists(filepath)) {
                 if (loadConfig(type, filepath)) {
                     found = true;
@@ -113,7 +122,7 @@ bool ConfigManager::loadConfigs(const std::string& config_dir_path) {
         
         // 如果没有找到配置文件，创建默认的 JSON 文件
         if (!found) {
-            std::string filepath = config_dir_path + "/" + base_name + ".json";
+            std::string filepath = joinPath(config_dir_path, base_name + ".json");
             if (!loadConfig(type, filepath)) {
                 all_success = false;
             }
@@ -146,7 +155,7 @@ bool ConfigManager::loadConfigs(const std::string& config_dir_path, ConfigFileFo
     
     for (auto type : types) {
         std::string filename = configTypeToString(type) + getConfigFileExtension(format);
-        std::string filepath = config_dir_path + "/" + filename;
+        std::string filepath = joinPath(config_dir_path, filename);
         
         if (!loadConfig(type, filepath, format)) {
             all_success = false;
@@ -689,7 +698,7 @@ bool ConfigManager::convertAllConfigs(const std::string& config_dir_path, Config
         std::string source_path;
         
         for (const auto& ext : extensions) {
-            std::string filepath = config_dir_path + "/" + base_name + ext;
+            std::string filepath = joinPath(config_dir_path, base_name + ext);
             if (std::filesystem::exists(filepath)) {
                 source_path = filepath;
                 break;
@@ -697,7 +706,7 @@ bool ConfigManager::convertAllConfigs(const std::string& config_dir_path, Config
         }
         
         if (!source_path.empty()) {
-            std::string target_path = config_dir_path + "/" + base_name + getConfigFileExtension(target_format);
+            std::string target_path = joinPath(config_dir_path, base_name + getConfigFileExtension(target_format));
             if (!convertConfigFormat(source_path, target_path, target_format)) {
                 all_success = false;
             }
@@ -727,9 +736,28 @@ nlohmann::json ConfigManager::loadJsonFile(const std::string& file_path) const {
 
 nlohmann::json ConfigManager::loadYamlFile(const std::string& file_path) const {
     try {
+        // 首先检查文件是否存在
+        if (!std::filesystem::exists(file_path)) {
+            std::cerr << "YAML file does not exist: " << file_path << std::endl;
+            return nlohmann::json();
+        }
+        
+        // 检查文件是否可读
+        std::ifstream test_file(file_path);
+        if (!test_file.is_open()) {
+            std::cerr << "Cannot open YAML file: " << file_path << std::endl;
+            return nlohmann::json();
+        }
+        test_file.close();
+        
+        // 尝试加载YAML文件
         YAML::Node yaml_node = YAML::LoadFile(file_path);
         return yamlToJson(yaml_node);
-    } catch (const std::exception&) {
+    } catch (const YAML::Exception& e) {
+        std::cerr << "YAML parsing error in file " << file_path << ": " << e.what() << std::endl;
+        return nlohmann::json();
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading YAML file " << file_path << ": " << e.what() << std::endl;
         return nlohmann::json();
     }
 }

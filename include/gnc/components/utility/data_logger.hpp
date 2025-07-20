@@ -37,6 +37,7 @@
 #include <vector>
 #include <memory>
 #include <any>
+#include <unordered_set>
 
 namespace gnc {
 namespace components {
@@ -241,14 +242,15 @@ private:
      * @param selector State selector configuration
      * @param all_available_states List of all available states from StateManager
      */
-    void processSpecificStateSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states);
+    void processSpecificStateSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states, std::unordered_set<gnc::states::StateId>& unique_states);
 
     /**
      * @brief Process regex-based state selector
      * @param selector State selector configuration with regex patterns
      * @param all_available_states List of all available states from StateManager
+     * @param unique_states Set to store unique selected states
      */
-    void processRegexSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states);
+    void processRegexSelector(const StateSelector& selector, const std::vector<gnc::states::StateId>& all_available_states, std::unordered_set<gnc::states::StateId>& unique_states);
 };
 // Register the DataLogger component with the factory
 static gnc::ComponentRegistrar<DataLogger> data_logger_registrar("DataLogger");

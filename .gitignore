@@ -19,6 +19,7 @@ temp/
 *.log
 *temp_*
 consoleOutTemp*.log
+logs
 
 # Backup files
 *.bak

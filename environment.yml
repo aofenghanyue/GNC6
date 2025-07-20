@@ -1,0 +1,26 @@
+# environment.yml
+name: gnc-msvc-env  # 环境名字
+
+channels:
+  - conda-forge
+
+dependencies:
+  # C++ 核心应用库
+  - hdf5
+  - eigen
+  - nlohmann_json
+  - spdlog
+  - yaml-cpp
+  - zlib
+
+  # C++ 测试库
+  - gtest
+
+  # 构建工具
+  - cmake
+  - ninja
+
+  # 打包工具
+  - conda-pack
+  # 编译器
+  # 在 Windows 上，conda 会优先寻找并使用系统上已安装的 Visual Studio (MSVC)

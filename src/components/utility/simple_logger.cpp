@@ -57,8 +57,14 @@ void SimpleLogger::initialize(const std::string& logger_name,
             return;
         }
 
-        // 如果启用异步日志，初始化异步线程池
-        if (config.async_enabled) {
+        // 检查是否在测试环境中运行（通过检查是否定义了GTEST相关宏）
+        bool in_test_environment = false;
+        #ifdef GTEST_VERSION_
+        in_test_environment = true;
+        #endif
+        
+        // 如果启用异步日志且不在测试环境中，初始化异步线程池
+        if (config.async_enabled && !in_test_environment) {
             // 初始化异步日志线程池：8192 队列大小，1个后台线程
             spdlog::init_thread_pool(8192, 1);
             

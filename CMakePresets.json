@@ -2,16 +2,39 @@
   "version": 4,
   "configurePresets": [
     {
-      "name": "default",
-      "displayName": "Default Config (MinGW)",
-      "description": "Build using MinGW Makefiles generator",
-      "generator": "MinGW Makefiles",
-      "binaryDir": "${sourceDir}/build",
+      "name": "msvc-debug",
+      "displayName": "MSVC Debug (Ninja)",
+      "description": "Build using MSVC compiler with Ninja generator",
+
+      "binaryDir": "${sourceDir}/build/debug",
+      "toolchainFile": "C:/Users/17721/Documents/Soft/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTING": "ON",
-        "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++"
+        "GNC_ENABLE_HDF5": "ON"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": ["Windows"]
+        }
+      }
+    },
+    {
+      "name": "msvc-release",
+      "displayName": "MSVC Release (Ninja)",
+      "description": "Build using MSVC compiler with Ninja generator in Release mode",
+      "binaryDir": "${sourceDir}/build/release",
+      "toolchainFile": "C:/Users/17721/Documents/Soft/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF",
+        "GNC_ENABLE_HDF5": "ON"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": ["Windows"]
+        }
       }
     }
   ],
@@ -19,22 +42,25 @@
     {
       "name": "debug",
       "displayName": "Debug Build",
-      "configurePreset": "default",
-      "configuration": "Debug"
+      "configurePreset": "msvc-debug"
+    },
+    {
+      "name": "release",
+      "displayName": "Release Build",
+      "configurePreset": "msvc-release"
     },
     {
       "name": "test",
       "displayName": "Test Build",
-      "configurePreset": "default",
-      "configuration": "Debug",
-      "targets": "gnc_tests"
+      "configurePreset": "msvc-debug",
+      "targets": ["gnc_tests"]
     }
   ],
   "testPresets": [
     {
       "name": "test",
       "displayName": "Run Tests",
-      "configurePreset": "default",
+      "configurePreset": "msvc-debug",
       "output": {
         "outputOnFailure": true
       }

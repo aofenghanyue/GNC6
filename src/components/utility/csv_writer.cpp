@@ -27,17 +27,22 @@ void CSVWriter::initialize(const std::string& file_path,
         // Store states for later use
         states_ = states;
 
+        // Generate unique filename with timestamp
+        std::string unique_file_path = generateUniqueFilename(file_path);
+
         // Create directory if it doesn't exist
-        std::filesystem::path path(file_path);
+        std::filesystem::path path(unique_file_path);
         if (path.has_parent_path()) {
             std::filesystem::create_directories(path.parent_path());
         }
 
         // Open file for writing
-        file_stream_.open(file_path, std::ios::out | std::ios::trunc);
+        file_stream_.open(unique_file_path, std::ios::out | std::ios::trunc);
         if (!file_stream_.is_open()) {
-            throw std::runtime_error("Failed to open CSV file: " + file_path);
+            throw std::runtime_error("Failed to open CSV file: " + unique_file_path);
         }
+
+        LOG_INFO("Created CSV file: {}", unique_file_path);
 
         // Set precision for floating point numbers
         file_stream_ << std::fixed << std::setprecision(6);
@@ -50,7 +55,7 @@ void CSVWriter::initialize(const std::string& file_path,
         initialized_ = true;
         header_written_ = false;
 
-        LOG_DEBUG("CSVWriter initialized successfully for file: {}", file_path);
+        LOG_DEBUG("CSVWriter initialized successfully");
 
     } catch (const std::exception& e) {
         if (file_stream_.is_open()) {
@@ -337,6 +342,63 @@ std::vector<std::string> CSVWriter::valueToCSVStrings(const std::any& value) {
     }
 
     return result;
+}
+
+std::string CSVWriter::generateUniqueFilename(const std::string& base_path) {
+    std::filesystem::path path_obj(base_path);
+    std::string directory = path_obj.parent_path().string();
+    std::string filename = path_obj.stem().string();
+    std::string extension = path_obj.extension().string();
+    
+    // Generate timestamp string (YYYYMMDD_HHMMSS format)
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()) % 1000;
+    
+    std::stringstream timestamp_ss;
+    timestamp_ss << std::put_time(std::localtime(&time_t), "%Y%m%d_%H%M%S");
+    
+    // Add milliseconds for extra uniqueness
+    timestamp_ss << "_" << std::setfill('0') << std::setw(3) << ms.count();
+    
+    // Try to get a short Git hash for run identification
+    std::string run_id;
+    try {
+        std::string git_command = "git rev-parse --short HEAD 2>nul";
+        FILE* pipe = _popen(git_command.c_str(), "r");
+        if (pipe) {
+            char buffer[32];
+            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                run_id = buffer;
+                // Remove trailing newline
+                if (!run_id.empty() && run_id.back() == '\n') {
+                    run_id.pop_back();
+                }
+            }
+            _pclose(pipe);
+        }
+    } catch (const std::exception& e) {
+        // If Git fails, use a simple counter or random identifier
+        run_id = "run";
+    }
+    
+    // If no Git hash, generate a simple random identifier
+    if (run_id.empty()) {
+        std::srand(static_cast<unsigned int>(std::time(nullptr)));
+        std::stringstream rand_ss;
+        rand_ss << std::hex << (std::rand() % 0xFFFF);
+        run_id = rand_ss.str();
+    }
+    
+    // Construct unique filename
+    std::stringstream unique_filename_ss;
+    if (!directory.empty()) {
+        unique_filename_ss << directory << "/";
+    }
+    unique_filename_ss << filename << "_" << timestamp_ss.str() << "_" << run_id << extension;
+    
+    return unique_filename_ss.str();
 }
 
 } // namespace utility

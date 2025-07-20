@@ -13,85 +13,81 @@ project(GncMetaFramework CXX)
 # ============================================================================
 # 编译器配置
 # ============================================================================
-# 设置 C++ 标准为 C++17，确保代码兼容性
-set(CMAKE_CXX_STANDARD 17)
+# 设置 C++ 标准为 C++20，确保代码兼容性
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ============================================================================
-# 第三方库测试禁用配置
+# 第三方库配置
 # ============================================================================
-# 全局禁用所有第三方库的测试构建，避免不必要的编译时间和测试干扰
-# 这些设置必须在 FetchContent_MakeAvailable 之前定义才能生效
-set(BUILD_TESTING OFF CACHE BOOL "禁用全局测试构建" FORCE)
-set(EIGEN_BUILD_TESTING OFF CACHE BOOL "禁用 Eigen 库测试" FORCE)
-set(JSON_BuildTests OFF CACHE BOOL "禁用 nlohmann/json 库测试" FORCE)
-set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "禁用 spdlog 库测试" FORCE)
-set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "禁用 spdlog 库示例" FORCE)
+# 这里使用vcpkg直接暗转好相应的库
+# 如果使用 conda 环境中预安装的依赖库，而不是 FetchContent 下载
+# 确保在激活 gnc-msvc-env conda 环境后运行 CMake
 
-# 引入 FetchContent 模块，用于自动下载和管理第三方依赖
-include(FetchContent)
-
-# 设置第三方库的缓存目录，避免重复下载
-# 所有外部依赖将被下载到 deps/ 目录下
-set(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps)
+# 设置 CMake 模块路径，用于查找第三方库
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # ============================================================================
 # 第三方依赖库配置
 # ============================================================================
-# 本项目依赖以下第三方库，通过 FetchContent 自动下载和管理
+# 使用vcpkg或使用 conda 环境中预安装的依赖库
 
 # ----------------------------------------------------------------------------
 # Eigen 数学库
 # ----------------------------------------------------------------------------
 # 用途：提供高性能的线性代数运算，包括矩阵、向量运算等
 # 在 GNC 系统中用于状态估计、控制算法等数学密集型计算
-FetchContent_Declare(
-  eigen
-  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-  GIT_TAG        3.4.0  # 使用稳定版本 3.4.0
-)
-FetchContent_MakeAvailable(eigen)
+find_package(Eigen3 REQUIRED)
+message(STATUS "Found Eigen3: ${Eigen3_VERSION}")
 
 # ----------------------------------------------------------------------------
 # nlohmann/json 库
 # ----------------------------------------------------------------------------
 # 用途：现代 C++ JSON 解析库，用于配置文件读取、数据序列化等
 # 在 GNC 系统中用于参数配置、数据交换等
-FetchContent_Declare(
-  nlohmann_json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG        v3.11.2  # 使用稳定版本 3.11.2
-)
-FetchContent_MakeAvailable(nlohmann_json)
+find_package(nlohmann_json REQUIRED)
+message(STATUS "Found nlohmann_json: ${nlohmann_json_VERSION}")
 
 # ----------------------------------------------------------------------------
 # spdlog 日志库
 # ----------------------------------------------------------------------------
 # 用途：高性能的 C++ 日志库，支持多种输出格式和日志级别
 # 在 GNC 系统中用于调试信息输出、运行状态记录等
-FetchContent_Declare(
-  spdlog
-  GIT_REPOSITORY https://github.com/gabime/spdlog.git
-  GIT_TAG        v1.11.0  # 使用稳定版本 1.11.0
-)
-FetchContent_MakeAvailable(spdlog)
+find_package(spdlog REQUIRED)
+message(STATUS "Found spdlog: ${spdlog_VERSION}")
 
 # ----------------------------------------------------------------------------
 # yaml-cpp 库
 # ----------------------------------------------------------------------------
 # 用途：C++ YAML 解析库，用于支持 YAML 格式的配置文件
 # 在 GNC 系统中用于更灵活的配置文件格式，支持注释和更好的可读性
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "禁用 yaml-cpp 库测试" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "禁用 yaml-cpp 工具" FORCE)
-set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "禁用 yaml-cpp contrib" FORCE)
-set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "构建 yaml-cpp 静态库" FORCE)
-set(YAML_CPP_BUILD_SHARED_LIBS OFF CACHE BOOL "构建 yaml-cpp 静态库" FORCE)
-FetchContent_Declare(
-  yaml-cpp
-  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-  # GIT_TAG        yaml-cpp-0.7.0  # 无论是 0.7.0 还是0.8.0版本，都会报错缺少cstdint头文件，默认不带tag的版本没问题
-)
-FetchContent_MakeAvailable(yaml-cpp)
+find_package(yaml-cpp REQUIRED)
+message(STATUS "Found yaml-cpp: ${yaml-cpp_VERSION}")
+
+# ----------------------------------------------------------------------------
+# HDF5 库
+# ----------------------------------------------------------------------------
+# 用途：科学数据格式库，用于高效存储和访问大型数据集
+# 在 GNC 系统中用于 DataLogger 组件的高效数据记录
+option(GNC_ENABLE_HDF5 "Enable HDF5 support" ON)
+
+if(GNC_ENABLE_HDF5)
+    # 查找 HDF5 库
+    find_package(HDF5 REQUIRED COMPONENTS C CXX)
+    
+    if(HDF5_FOUND)
+        set(HDF5_AVAILABLE ON)
+        message(STATUS "Found HDF5: ${HDF5_VERSION}")
+        message(STATUS "HDF5 include dirs: ${HDF5_INCLUDE_DIRS}")
+        message(STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
+    else()
+        set(HDF5_AVAILABLE OFF)
+        message(WARNING "HDF5 not found - DataLogger will use CSV format only")
+    endif()
+else()
+    set(HDF5_AVAILABLE OFF)
+    message(STATUS "HDF5 support disabled - DataLogger will use CSV format only")
+endif()
 
 # ============================================================================
 # 自动组件注册配置
@@ -155,23 +151,38 @@ add_library(gnc_lib STATIC ${GNC_ALL_SOURCES})
 target_include_directories(gnc_lib PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include     # GNC 自身的头文件目录
     ${CMAKE_CURRENT_BINARY_DIR}/generated   # 自动生成的文件目录
-    ${eigen_SOURCE_DIR}                     # Eigen 数学库（仅头文件库）
-    ${nlohmann_json_SOURCE_DIR}/include     # JSON 库（仅头文件库）
-    ${spdlog_SOURCE_DIR}/include            # spdlog 日志库头文件
-    ${yaml-cpp_SOURCE_DIR}/include          # yaml-cpp 库头文件
 )
 
 # 链接第三方库到 GNC 库
-# PRIVATE：表示这些依赖关系不会传递给链接 gnc_lib 的其他目标
-target_link_libraries(gnc_lib PRIVATE 
+# PUBLIC：表示这些依赖关系会传递给链接 gnc_lib 的其他目标
+target_link_libraries(gnc_lib PUBLIC 
+    Eigen3::Eigen
+    nlohmann_json::nlohmann_json
     spdlog::spdlog
-    yaml-cpp
+    yaml-cpp::yaml-cpp
 )
 
-# YAML_CPP_STATIC_DEFINE解决mingw环境下DLL导入警告问题
-if(WIN32)
-  target_compile_definitions(gnc_lib PUBLIC YAML_CPP_STATIC_DEFINE)
+# 条件性链接 HDF5 库
+if(HDF5_AVAILABLE AND GNC_ENABLE_HDF5)
+    # 添加 HDF5 头文件路径
+    target_include_directories(gnc_lib PUBLIC ${HDF5_INCLUDE_DIRS})
+    
+    # 链接 HDF5 库
+    target_link_libraries(gnc_lib PUBLIC ${HDF5_LIBRARIES})
+    
+    # 添加 HDF5 编译定义
+    target_compile_definitions(gnc_lib PUBLIC 
+        HDF5_AVAILABLE
+        ${HDF5_DEFINITIONS}
+    )
+    
+    message(STATUS "HDF5 libraries linked to DataLogger")
 endif()
+
+# # YAML_CPP_DLL解决mingw环境下DLL导入警告问题
+# if(WIN32)
+#   target_compile_definitions(gnc_lib PUBLIC YAML_CPP_DLL)
+# endif()
 
 # ============================================================================
 # 主可执行文件构建配置
