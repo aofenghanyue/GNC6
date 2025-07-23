@@ -222,6 +222,18 @@ private:
     bool initialized_;                ///< Whether component has been initialized
 
     /**
+     * @brief Structure to hold flattened state information
+     */
+    struct FlattenedState {
+        gnc::states::StateId original_state_id;  ///< Original state ID
+        std::string flattened_name;              ///< Flattened name (e.g., "position_x", "attitude_w")
+        std::string type_name;                   ///< Type name from RTTI
+        int component_index;                     ///< Index within the original state (0 for scalars)
+    };
+
+    std::vector<FlattenedState> flattened_states_;     ///< List of flattened states for logging
+
+    /**
      * @brief Load configuration from utility.yaml
      * @throws std::runtime_error if configuration is invalid
      */
@@ -232,6 +244,12 @@ private:
      * @details Uses regex patterns to match component and state names
      */
     void discoverAndSelectStates();
+
+    /**
+     * @brief Flatten multi-dimensional states into scalar components
+     * @details Converts Vector3d to _x, _y, _z and Quaterniond to _w, _x, _y, _z
+     */
+    void flattenStates();
 
     /**
      * @brief Check if it's time to log data based on frequency setting
@@ -260,6 +278,24 @@ private:
      * @return JSON object containing metadata (git hash, config snapshot, timestamp)
      */
     nlohmann::json collectMetadata();
+
+    /**
+     * @brief Get raw state value as std::any
+     * @param state_id State identifier
+     * @return State value as std::any
+     * @throws std::runtime_error if state cannot be accessed
+     */
+    std::any getRawStateValue(const gnc::states::StateId& state_id);
+
+    /**
+     * @brief Extract scalar value from std::any based on type and component index
+     * @param value The std::any value containing the state data
+     * @param type_name The type name from RTTI
+     * @param component_index The index of the component to extract (0 for scalars)
+     * @return Extracted scalar value as double
+     * @throws std::runtime_error if extraction fails
+     */
+    double extractScalarFromAny(const std::any& value, const std::string& type_name, int component_index);
 };
 // Register the DataLogger component with the factory
 static gnc::ComponentRegistrar<DataLogger> data_logger_registrar("DataLogger");

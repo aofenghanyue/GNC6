@@ -225,6 +225,38 @@ public:
         return all_states;
     }
 
+    /**
+     * @brief 获取状态的类型信息
+     * @param state_id 状态标识符
+     * @return 状态的类型名称字符串，如果状态不存在则返回空字符串
+     */
+    std::string getStateType(const StateId& state_id) const {
+        auto it = components_.find(state_id.component);
+        if (it != components_.end()) {
+            auto interface = it->second->getInterface();
+            for (const auto& output : interface.getOutputs()) {
+                if (output.name == state_id.name) {
+                    return output.type;
+                }
+            }
+        }
+        return "";
+    }
+
+    /**
+     * @brief 获取状态的原始std::any值
+     * @param state_id 状态标识符
+     * @return 状态的std::any值引用
+     * @throws StateAccessError 如果状态不存在
+     */
+    const std::any& getRawStateValue(const StateId& state_id) const {
+        auto it = states_.find(state_id);
+        if (it != states_.end()) {
+            return it->second;
+        }
+        throw StateAccessError("StateManager", "State '" + state_id.name + "' not found for component '" + state_id.component.name + "'.");
+    }
+
 protected:
     const std::any& getStateImpl(const StateId& id, const std::string& type) const override {
         if (states_.count(id)) {

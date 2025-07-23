@@ -9,6 +9,7 @@
 #include "gnc/components/utility/simple_logger.hpp"
 #include "gnc/components/utility/config_manager.hpp"
 #include "gnc/core/state_manager.hpp"
+#include "math/math.hpp"
 #include <regex>
 #include <stdexcept>
 #include <any>
@@ -17,6 +18,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cstdio>
+#include <limits>
 
 // Platform-specific includes for popen/pclose
 #ifdef _WIN32
@@ -90,9 +92,20 @@ void DataLogger::initialize() {
             metadata_json = collectMetadata();
         }
 
+        // Create flattened state IDs for file writer initialization
+        std::vector<gnc::states::StateId> flattened_state_ids;
+        for (const auto& flattened_state : flattened_states_) {
+            // Create a pseudo StateId for the flattened state
+            gnc::states::StateId flattened_id = {
+                flattened_state.original_state_id.component,
+                flattened_state.flattened_name
+            };
+            flattened_state_ids.push_back(flattened_id);
+        }
+
         // Initialize file writer
         try {
-            file_writer_->initialize(file_path_, states_to_log_, log_metadata_, metadata_json);
+            file_writer_->initialize(file_path_, flattened_state_ids, log_metadata_, metadata_json);
             LOG_COMPONENT_DEBUG("File writer initialized successfully");
         } catch (const std::exception& e) {
             LOG_COMPONENT_ERROR("Failed to initialize file writer: {}", e.what());
@@ -145,16 +158,60 @@ void DataLogger::updateImpl() {
     }
 
     try {
-        // TODO: Get current time from TimingManager (Task 9)
-        double current_time = 0.0; // Placeholder
+        // Get current time from TimingManager
+        double current_time = 0.0;
+        try {
+            // Try to get timing from the global TimingManager
+            StateId timing_state_id = {{globalId, "TimingManager"}, "timing_current_s"};
+            current_time = getState<double>(timing_state_id);
+        } catch (const std::exception& e) {
+            LOG_COMPONENT_DEBUG("Could not get timing from TimingManager: {}", e.what());
+            // Use a simple counter as fallback
+            static double fallback_time = 0.0;
+            fallback_time += 0.01; // Assume 10ms steps
+            current_time = fallback_time;
+        }
 
         // Check if it's time to log
         if (!shouldLog(current_time)) {
             return;
         }
 
-        // TODO: Collect state values and write data (Task 9)
-        
+        // Collect values for all flattened states from StateManager
+        std::vector<std::any> values;
+        values.reserve(flattened_states_.size());
+
+        // Get access to StateManager
+        gnc::StateManager* state_manager = dynamic_cast<gnc::StateManager*>(getStateAccess());
+        if (!state_manager) {
+            LOG_COMPONENT_ERROR("Failed to access StateManager for data collection");
+            return;
+        }
+
+        for (const auto& flattened_state : flattened_states_) {
+            try {
+                // Get the raw state value and extract the component
+                const std::any& raw_value = state_manager->getRawStateValue(flattened_state.original_state_id);
+                double scalar_value = extractScalarFromAny(raw_value, flattened_state.type_name, flattened_state.component_index);
+                values.emplace_back(scalar_value);
+            } catch (const std::exception& e) {
+                LOG_COMPONENT_WARN("Failed to get flattened state {}: {}", 
+                                   flattened_state.flattened_name, 
+                                   e.what());
+                // Push NaN as placeholder for missing data
+                values.emplace_back(std::numeric_limits<double>::quiet_NaN());
+            }
+        }
+
+        // Write data point using file writer
+        if (file_writer_) {
+            try {
+                file_writer_->writeDataPoint(current_time, values);
+            } catch (const std::exception& e) {
+                LOG_COMPONENT_ERROR("Failed to write data point: {}", e.what());
+            }
+        }
+
         last_log_time_ = current_time;
 
     } catch (const std::exception& e) {
@@ -347,6 +404,53 @@ void DataLogger::discoverAndSelectStates() {
                            state_id.component.name, 
                            state_id.name);
     }
+
+    // Flatten multi-dimensional states
+    flattenStates();
+}
+
+void DataLogger::flattenStates() {
+    LOG_COMPONENT_DEBUG("Flattening multi-dimensional states");
+
+    flattened_states_.clear();
+
+    // Get access to StateManager
+    gnc::StateManager* state_manager = dynamic_cast<gnc::StateManager*>(getStateAccess());
+    if (!state_manager) {
+        LOG_COMPONENT_ERROR("Failed to access StateManager for state flattening");
+        return;
+    }
+
+    for (const auto& state_id : states_to_log_) {
+        std::string type_name = state_manager->getStateType(state_id);
+        
+        // Create base name for flattened states
+        std::string base_name = state_id.component.name + "." + state_id.name;
+        
+        if (type_name == typeid(Vector3d).name()) {
+            // Flatten Vector3d to _x, _y, _z
+            flattened_states_.push_back({state_id, base_name + "_x", type_name, 0});
+            flattened_states_.push_back({state_id, base_name + "_y", type_name, 1});
+            flattened_states_.push_back({state_id, base_name + "_z", type_name, 2});
+            LOG_COMPONENT_DEBUG("Flattened Vector3d state: {} -> {}_x, {}_y, {}_z", 
+                               base_name, base_name, base_name, base_name);
+        } else if (type_name == typeid(Quaterniond).name()) {
+            // Flatten Quaterniond to _w, _x, _y, _z
+            flattened_states_.push_back({state_id, base_name + "_w", type_name, 0});
+            flattened_states_.push_back({state_id, base_name + "_x", type_name, 1});
+            flattened_states_.push_back({state_id, base_name + "_y", type_name, 2});
+            flattened_states_.push_back({state_id, base_name + "_z", type_name, 3});
+            LOG_COMPONENT_DEBUG("Flattened Quaterniond state: {} -> {}_w, {}_x, {}_y, {}_z", 
+                               base_name, base_name, base_name, base_name, base_name);
+        } else {
+            // Scalar types remain as single entries
+            flattened_states_.push_back({state_id, base_name, type_name, 0});
+            LOG_COMPONENT_DEBUG("Scalar state: {} (type: {})", base_name, type_name);
+        }
+    }
+
+    LOG_COMPONENT_INFO("State flattening completed: {} original states -> {} flattened states", 
+                       states_to_log_.size(), flattened_states_.size());
 }
 
 bool DataLogger::shouldLog(double current_time) const {
@@ -602,6 +706,80 @@ nlohmann::json DataLogger::collectMetadata() {
     }
     
     return metadata;
+}
+
+std::any DataLogger::getRawStateValue(const gnc::states::StateId& state_id) {
+    // Get access to StateManager to use the new getRawStateValue method
+    gnc::StateManager* state_manager = dynamic_cast<gnc::StateManager*>(getStateAccess());
+    if (!state_manager) {
+        throw std::runtime_error("Failed to access StateManager for raw state value retrieval");
+    }
+    
+    try {
+        return state_manager->getRawStateValue(state_id);
+    } catch (const std::exception& e) {
+        LOG_COMPONENT_ERROR("Error getting raw state value for {}.{}.{}: {}", 
+                           state_id.component.vehicleId, 
+                           state_id.component.name, 
+                           state_id.name, 
+                           e.what());
+        throw;
+    }
+}
+
+double DataLogger::extractScalarFromAny(const std::any& value, const std::string& type_name, int component_index) {
+    try {
+        if (type_name == typeid(double).name()) {
+            return std::any_cast<double>(value);
+        } else if (type_name == typeid(float).name()) {
+            return static_cast<double>(std::any_cast<float>(value));
+        } else if (type_name == typeid(int).name()) {
+            return static_cast<double>(std::any_cast<int>(value));
+        } else if (type_name == typeid(uint64_t).name()) {
+            return static_cast<double>(std::any_cast<uint64_t>(value));
+        } else if (type_name == typeid(bool).name()) {
+            return std::any_cast<bool>(value) ? 1.0 : 0.0;
+        } else if (type_name == typeid(Vector3d).name()) {
+            const Vector3d& vec = std::any_cast<const Vector3d&>(value);
+            switch (component_index) {
+                case 0: return vec.x();
+                case 1: return vec.y();
+                case 2: return vec.z();
+                default: 
+                    throw std::runtime_error("Invalid component index for Vector3d: " + std::to_string(component_index));
+            }
+        } else if (type_name == typeid(Quaterniond).name()) {
+            const Quaterniond& quat = std::any_cast<const Quaterniond&>(value);
+            switch (component_index) {
+                case 0: return quat.w();
+                case 1: return quat.x();
+                case 2: return quat.y();
+                case 3: return quat.z();
+                default: 
+                    throw std::runtime_error("Invalid component index for Quaterniond: " + std::to_string(component_index));
+            }
+        } else if (type_name == typeid(std::string).name()) {
+            // For strings, we can't convert to double meaningfully
+            // Return NaN to indicate non-numeric data
+            return std::numeric_limits<double>::quiet_NaN();
+        } else if (type_name == typeid(std::vector<double>).name()) {
+            const std::vector<double>& vec = std::any_cast<const std::vector<double>&>(value);
+            if (component_index >= 0 && component_index < static_cast<int>(vec.size())) {
+                return vec[component_index];
+            } else {
+                throw std::runtime_error("Invalid component index for std::vector<double>: " + std::to_string(component_index));
+            }
+        } else {
+            LOG_COMPONENT_WARN("Unsupported type for scalar extraction: {}", type_name);
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+    } catch (const std::bad_any_cast& e) {
+        LOG_COMPONENT_ERROR("Failed to cast std::any value: {}", e.what());
+        return std::numeric_limits<double>::quiet_NaN();
+    } catch (const std::exception& e) {
+        LOG_COMPONENT_ERROR("Error extracting scalar from any: {}", e.what());
+        return std::numeric_limits<double>::quiet_NaN();
+    }
 }
 
 
