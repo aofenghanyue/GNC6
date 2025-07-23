@@ -127,28 +127,60 @@ void DataLogger::initialize() {
 
 void DataLogger::finalize() {
     if (!initialized_) {
+        LOG_COMPONENT_DEBUG("DataLogger already finalized or not initialized");
         return;
     }
 
     try {
         LOG_COMPONENT_INFO("Finalizing DataLogger component");
 
-        // Finalize file writer if it exists
+        // Requirement 8.1 & 8.2: Flush all data buffers to disk and properly close file handles
         if (file_writer_) {
             try {
+                LOG_COMPONENT_DEBUG("Flushing data buffers and closing file handles");
                 file_writer_->finalize();
                 LOG_COMPONENT_DEBUG("File writer finalized successfully");
             } catch (const std::exception& e) {
+                // Requirement 8.3: Ensure proper cleanup of file resources even on errors
                 LOG_COMPONENT_ERROR("Error finalizing file writer: {}", e.what());
+                // Continue with cleanup even if file writer finalization fails
             }
+            
+            // Clean up file writer resource
             file_writer_.reset();
+            LOG_COMPONENT_DEBUG("File writer resource cleaned up");
         }
 
+        // Clear cached state data to free memory
+        states_to_log_.clear();
+        flattened_states_.clear();
+        selectors_.clear();
+        
+        // Reset timing state
+        last_log_time_ = 0.0;
+        
+        // Mark as not initialized
         initialized_ = false;
-        LOG_COMPONENT_INFO("DataLogger finalization completed");
+        
+        LOG_COMPONENT_INFO("DataLogger finalization completed successfully");
 
     } catch (const std::exception& e) {
+        // Requirement 8.3: Ensure proper cleanup of file resources even on errors
         LOG_COMPONENT_ERROR("Error during DataLogger finalization: {}", e.what());
+        
+        // Force cleanup even if errors occurred
+        try {
+            if (file_writer_) {
+                file_writer_.reset();
+            }
+            states_to_log_.clear();
+            flattened_states_.clear();
+            selectors_.clear();
+            initialized_ = false;
+            LOG_COMPONENT_WARN("Forced cleanup completed after finalization error");
+        } catch (const std::exception& cleanup_error) {
+            LOG_COMPONENT_ERROR("Critical error during forced cleanup: {}", cleanup_error.what());
+        }
     }
 }
 
