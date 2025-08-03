@@ -45,6 +45,7 @@ public:
         }
         components_.clear();
         states_.clear();
+        componentDependencies_.clear();
         LOG_INFO("[StateManager] Shutdown complete.");
     }
 
@@ -62,6 +63,17 @@ public:
         }
 
         auto interface = component->getInterface();
+        
+        // Extract component-level dependencies from simplified inputs
+        std::unordered_set<ComponentId, std::hash<ComponentId>> componentDeps;
+        for (const auto& spec : interface.getInputs()) {
+            if (spec.source && spec.required) {
+                componentDeps.insert(spec.source->component);
+            }
+        }
+        componentDependencies_[id] = componentDeps;
+        
+        // Initialize output states
         for (const auto& spec : interface.getOutputs()) {
             states_[StateId{id, spec.name}] = spec.default_value.has_value() ? std::any(spec.default_value) : std::any();
         }
@@ -77,15 +89,14 @@ public:
 
         LOG_DEBUG("[StateManager] Validating dependencies and performing topological sort...");
         
-        // 1. 构建依赖图
+        // 1. Use pre-built component dependency graph
         std::unordered_map<ComponentId, std::unordered_set<ComponentId, std::hash<ComponentId>>> graph;
         for (const auto& [id, component] : components_) {
-            graph[id] = {}; // 确保每个组件都是图中的一个节点
-            auto interface = component->getInterface();
-            for (const auto& inputSpec : interface.getInputs()) {
-                if(inputSpec.source && inputSpec.required) {
-                    graph[id].insert(inputSpec.source->component);
-                }
+            // Initialize with stored component dependencies
+            if (componentDependencies_.count(id)) {
+                graph[id] = componentDependencies_.at(id);
+            } else {
+                graph[id] = {}; // No dependencies
             }
         }
 
@@ -400,6 +411,7 @@ private:
     std::unordered_map<ComponentId, ComponentBase*, std::hash<ComponentId>> components_;
     std::unordered_map<StateId, std::any, std::hash<StateId>> states_;
     std::vector<ComponentId> executionOrder_;
+    std::unordered_map<ComponentId, std::unordered_set<ComponentId, std::hash<ComponentId>>, std::hash<ComponentId>> componentDependencies_;
     bool needsRevalidation_{true};
 };
 
