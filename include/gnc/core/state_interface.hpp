@@ -119,7 +119,9 @@ public:
                         "Input '" + spec.name + "' has invalid source component name"
                     );
                 }
-                if (spec.source->name.empty()) {
+                // For simplified component-level dependencies, allow empty source state names
+                // Only validate source state name for traditional state-level dependencies
+                if (spec.source->name.empty() && !spec.name.empty()) {
                     throw ValidationError(
                         "State Interface",
                         "Input '" + spec.name + "' has invalid source state name"
@@ -154,10 +156,18 @@ private:
     }
 
     void validateSpec(const StateSpec& spec, StateAccessType expectedAccess) {
-        if (spec.name.empty()) {
+        // For simplified dependency declarations (component-level inputs), allow empty state names
+        if (spec.name.empty() && expectedAccess == StateAccessType::Output) {
             throw ValidationError(
                 "State Interface",
-                "State name cannot be empty"
+                "Output state name cannot be empty"
+            );
+        }
+        // For input states, empty name is allowed for simplified component-level dependencies
+        if (spec.name.empty() && expectedAccess == StateAccessType::Input && !spec.source.has_value()) {
+            throw ValidationError(
+                "State Interface",
+                "Input state must have either a name or a source component"
             );
         }
         if (spec.type.empty()) {
@@ -172,7 +182,9 @@ private:
                 "Invalid access type for state: " + spec.name
             );
         }
-        if (findInput(spec.name) || findOutput(spec.name)) {
+        // Only check for duplicate names if the state name is not empty
+        // (simplified component-level dependencies can have empty names)
+        if (!spec.name.empty() && (findInput(spec.name) || findOutput(spec.name))) {
             throw ValidationError(
                 "State Interface",
                 "Duplicate state name: " + spec.name

@@ -5,22 +5,26 @@ core:
   timing:
     duration_s: 10.0  # 仿真总时长（秒）
     time_step_s: 1.0 # 仿真步长（秒）
+  
   # 飞行器配置
   vehicles:
     - id: 0  # 飞行器ID
       components:
-        - TimingManager
+        - type: TimingManager
+          priority: 1000  # 最高优先级
         - type: CoordinationInitializer
           name: CoordinationInitializer
-        - DataLogger
+          priority: 900   # 高优先级
+        - type: DataLogger
+          priority: 100   # 最低优先级
         
     - id: 1  # 飞行器ID
       components:
         # 按期望的逻辑顺序或任意顺序列出组件
         # StateManager会自动处理依赖关系和执行顺序
-        # 支持两种格式：
-        # 1. 简单字符串格式（向后兼容）
-        # 坐标转换系统初始化器（必须在其他组件之前）
+        # 支持三种格式：
+        # 1. 简单字符串格式（向后兼容，使用默认优先级500）
+        # 2. 对象格式，包含type和可选的name、priority参数
         - SimpleAtmosphere
         - RigidBodyDynamics6DoF
         - SimpleAerodynamics

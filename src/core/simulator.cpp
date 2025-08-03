@@ -45,6 +45,7 @@ void Simulator::initialize() {
         for (const auto& comp_config : vehicle_config["components"]) {
             std::string type_str;
             std::string instance_name;
+            int priority = 500; // 默认优先级
 
             if (comp_config.is_string()) {
                 type_str = comp_config.get<std::string>();
@@ -53,9 +54,17 @@ void Simulator::initialize() {
                 if (comp_config.contains("name")) {
                     instance_name = comp_config["name"].get<std::string>();
                 }
+                if (comp_config.contains("priority")) {
+                    priority = comp_config["priority"].get<int>();
+                    // 验证优先级范围
+                    if (priority < 1 || priority > 1000) {
+                        LOG_WARN("Component '{}' priority {} is out of range [1-1000], using default priority 500", type_str.c_str(), priority);
+                        priority = 500;
+                    }
+                }
             }
             ComponentBase* component = ComponentFactory::getInstance().createComponent(type_str, vehicle_id, instance_name);
-            state_manager_->registerComponent(component);
+            state_manager_->registerComponent(component, priority);
         }
     }
 

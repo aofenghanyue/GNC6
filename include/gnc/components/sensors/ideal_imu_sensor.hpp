@@ -11,8 +11,6 @@ class IdealIMUSensor : public states::ComponentBase {
 public:
     IdealIMUSensor(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "IMU_Sensor", instanceName) {
-        // 简化的组件级依赖声明
-        declareInput<void>(ComponentId{id, "Dynamics"});
         declareOutput<Vector3d>("measured_acceleration");
     }
 

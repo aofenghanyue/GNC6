@@ -13,6 +13,7 @@ public:
         : states::ComponentBase(id, "Aerodynamics", instanceName) {
         // 简化的组件级依赖声明
         declareInput<void>(ComponentId{id, "Atmosphere"});
+        declareInput<void>(ComponentId{id, "Control"});
         declareInput<void>(ComponentId{id, "Disturbance"});
         
         declareOutput<Vector3d>("aero_force_truth_N");
