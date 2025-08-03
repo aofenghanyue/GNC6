@@ -21,10 +21,9 @@ public:
     SustainedConditionExample(states::VehicleId id, const std::string& instanceName = "")
         : states::ComponentBase(id, "SustainedConditionExample", instanceName), cycle_count_(0) {
         
-        // 声明输入状态
-        declareInput<double>("altitude", {{id, "Navigation"}, "altitude"}, false);
-        declareInput<double>("speed", {{id, "Navigation"}, "speed"}, false);
-        declareInput<double>("throttle", {{id, "Control"}, "throttle"}, false);
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "Navigation"});
+        declareInput<void>(ComponentId{id, "Control"});
         
         // 声明输出状态
         declareOutput<std::string>("current_phase");

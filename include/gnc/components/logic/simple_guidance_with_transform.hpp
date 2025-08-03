@@ -25,10 +25,9 @@ public:
     SimpleGuidanceWithTransform(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "SimpleGuidance", instanceName) {
         
-        // 声明输入
-        declareInput<Vector3d>("position_inertial", {{id, "Navigation"}, "position_estimate"});
-        declareInput<Vector3d>("velocity_inertial", {{id, "Navigation"}, "velocity_estimate"});
-        declareInput<Vector3d>("target_position", {{id, "TargetTracker"}, "target_position"}, false);
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "Navigation"});
+        declareInput<void>(ComponentId{id, "TargetTracker"});
         
         // 声明输出
         declareOutput<std::vector<double>>("guidance_command_inertial");

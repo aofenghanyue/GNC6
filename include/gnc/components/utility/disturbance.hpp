@@ -14,7 +14,8 @@
  * class IMUSensor : public ComponentBase {
  * public:
  *     IMUSensor(VehicleId id) : ComponentBase(id, "IMU") {
- *         declareInput<Vector3d>("gyro_bias", {{id, "Disturbance"}, "imu_gyro_bias"});
+ *         // 简化的组件级依赖声明
+ *         declareInput<void>(ComponentId{id, "Disturbance"});
  *         declareOutput<Vector3d>("angular_rate");
  *     }
  *     

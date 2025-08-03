@@ -14,12 +14,10 @@ class RigidBodyDynamics6DoF : public states::ComponentBase {
 public:
     RigidBodyDynamics6DoF(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "Dynamics", instanceName) {
-        // 全局依赖
-        declareInput<double>("timing_current_s", {{globalId, "TimingManager"}, "timing_current_s"});
-        declareInput<bool>("coordination_initialized",{{globalId,"CoordinationInitializer"}, "coordination_initialized"});
-
-        // 依赖的本来是经过适配器拉偏后的气动力，但是这里先不考虑disturb模块
-        declareInput<Vector3d>("aero_force_truth_N", { {id, "Aerodynamics"}, "aero_force_truth_N" });
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{globalId, "TimingManager"});
+        declareInput<void>(ComponentId{globalId, "CoordinationInitializer"});
+        declareInput<void>(ComponentId{id, "Aerodynamics"});
         
         // 输出真值状态
         declareOutput<Vector3d>("position_truth_m", Vector3d(0.0, 0.0, 0.0));

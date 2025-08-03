@@ -38,11 +38,8 @@ public:
     FlightPhaseManager(states::VehicleId id, const std::string& instanceName = "")
         : states::ComponentBase(id, "FlightPhaseManager", instanceName) {
         
-        // 声明输入状态
-        declareInput<double>("altitude", {{id, "Navigation"}, "altitude"});
-        declareInput<double>("airspeed", {{id, "Navigation"}, "airspeed"});
-        declareInput<bool>("on_ground", {{id, "Navigation"}, "on_ground"});
-        declareInput<double>("distance_to_destination", {{id, "Navigation"}, "distance_to_destination"}, false);
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "Navigation"});
         
         // 声明输出状态
         declareOutput<std::string>("current_phase");  // 当前飞行阶段名称

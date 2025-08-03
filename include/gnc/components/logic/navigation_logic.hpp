@@ -11,8 +11,8 @@ class PerfectNavigation : public states::ComponentBase {
 public:
     PerfectNavigation(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "Navigation", instanceName) {
-        // declareInput<Vector3d>("pos_truth", {{id, "Dynamics"}, "position_truth_m"}, false);
-        declareInput<Vector3d>("pos_measured", {{id, "IMU_Sensor"}, "measured_acceleration"});
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "IMU_Sensor"});
         declareOutput<Vector3d>("pva_estimate");
     }
 

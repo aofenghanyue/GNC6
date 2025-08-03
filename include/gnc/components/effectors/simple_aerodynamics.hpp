@@ -11,10 +11,9 @@ class SimpleAerodynamics : public states::ComponentBase {
 public:
     SimpleAerodynamics(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "Aerodynamics", instanceName) {
-        // 依赖大气密度和飞行器速度（来自理想传感器）
-        declareInput<double>("air_density_kg_m3", { {id, "Atmosphere"}, "air_density_kg_m3" });
-        declareInput<double>("drag_factor", { {id, "Disturbance"}, "drag_factor" });
-        // declareInput<Vector3d>("velocity_truth_mps", { {id, "Dynamics"}, "velocity_truth_mps" }, false);
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "Atmosphere"});
+        declareInput<void>(ComponentId{id, "Disturbance"});
         
         declareOutput<Vector3d>("aero_force_truth_N");
     }

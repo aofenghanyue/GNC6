@@ -206,29 +206,29 @@ protected:
     virtual void updateImpl() = 0;
 
     /**
-     * @brief 声明输入状态
+     * @brief 声明输入状态 (简化版本 - 仅需组件ID)
      * 
-     * @tparam T 状态的数据类型
-     * @param name 状态名称
-     * @param source 状态数据的来源，包含源组件ID和状态名
+     * @tparam T 状态的数据类型 (可以是void，表示不关心具体类型)
+     * @param componentId 依赖的组件ID
      * 
-     * @details 输入状态声明过程：
+     * @details 简化的输入状态声明过程：
      * 1. 创建状态规范(StateSpec)对象
-     * 2. 记录状态类型、名称和来源
+     * 2. 记录依赖的组件ID，不需要指定具体状态名
      * 3. 添加到组件的状态列表
      * 
      * 使用示例：
      * @code
-     * declareInput<Vector3d>("gps_position", StateId{1, "GPS", "position"});
+     * declareInput<void>(ComponentId{1, "GPS"});    // 声明依赖GPS组件
+     * declareInput<void>(ComponentId{1, "IMU"});    // 声明依赖IMU组件
      * @endcode
      */
     template<typename T>
-    void declareInput(const std::string& name, const StateId& source, bool required = true) {
+    void declareInput(const ComponentId& componentId, bool required = true) {
         StateSpec spec{
-            .name = name,
+            .name = "",  // 不需要具体的状态名
             .type = typeid(T).name(),
             .access = StateAccessType::Input,
-            .source = source,
+            .source = StateId{componentId, ""},  // 只记录组件ID，状态名为空
             .required = required,
             .default_value = std::any(),
         };

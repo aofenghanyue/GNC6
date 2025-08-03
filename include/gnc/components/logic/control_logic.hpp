@@ -10,7 +10,8 @@ class ControlLogic : public states::ComponentBase {
 public:
     ControlLogic(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "Control", instanceName) {
-        declareInput<double>("throttle_cmd", {{id, "GuidanceWithPhase"}, "desired_throttle_level"});
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "GuidanceWithPhase"});
         declareOutput<double>("engine_gimbal_angle_rad");
     }
 

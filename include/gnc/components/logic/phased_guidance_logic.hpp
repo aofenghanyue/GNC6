@@ -39,8 +39,8 @@ public:
         : states::ComponentBase(id, "Guidance", instanceName), 
           cycle_count_(0) {
         
-        // 声明输入状态
-        declareInput<Vector3d>("nav_pva", {{id, "Navigation"}, "pva_estimate"});
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "Navigation"});
         
         // 声明输出状态
         declareOutput<std::string>("current_phase");        // 当前制导阶段名称

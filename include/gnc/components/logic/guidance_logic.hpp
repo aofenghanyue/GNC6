@@ -12,7 +12,8 @@ class GuidanceLogic : public states::ComponentBase {
 public:
     GuidanceLogic(states::VehicleId id, const std::string& instanceName = "") 
         : states::ComponentBase(id, "Guidance", instanceName) {
-        declareInput<Vector3d>("nav_pva", {{id, "Navigation"}, "pva_estimate"});
+        // 简化的组件级依赖声明
+        declareInput<void>(ComponentId{id, "Navigation"});
         declareOutput<double>("desired_throttle_level"); // 输出一个油门指令
     }
 
